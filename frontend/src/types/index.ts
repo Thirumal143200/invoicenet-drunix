@@ -163,3 +163,224 @@ export interface UserPersona {
   orgMsp: 'SupplierMSP' | 'BuyerMSP' | 'FinancierMSP' | 'NetworkAuditor';
   badgeColor: string;
 }
+
+export interface CopilotEvidenceItem {
+  type: 'INVOICE' | 'BLOCKCHAIN_TX' | 'RISK_ALERT' | 'NETWORK_METRIC';
+  title: string;
+  invoiceId?: string;
+  invoiceNumber?: string;
+  amount?: number;
+  currency?: string;
+  status?: string;
+  txId?: string;
+  blockNumber?: number;
+  documentHash?: string;
+  details?: string;
+}
+
+export interface CopilotMessage {
+  id: string;
+  role: 'user' | 'model';
+  content: string;
+  timestamp: string;
+  evidence?: CopilotEvidenceItem[];
+  suggestedActions?: string[];
+  isError?: boolean;
+}
+
+export type AnomalyType =
+  | 'REPEATED_INVOICE_REFERENCE'
+  | 'REPEATED_FINANCING_ATTEMPT'
+  | 'UNUSUAL_INVOICE_AMOUNT'
+  | 'PAYMENT_DETAILS_MODIFICATION'
+  | 'UNUSUAL_TRANSACTION_FREQUENCY'
+  | 'INVOICE_HISTORY_INCONSISTENCY';
+
+export type AlertSeverity = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+
+export type InvestigationStatus = 'OPEN' | 'UNDER_REVIEW' | 'RESOLVED' | 'FALSE_POSITIVE';
+
+export interface AuditLogEntry {
+  id: string;
+  timestamp: string;
+  actorId: string;
+  actorOrg: string;
+  action: string;
+  notes?: string;
+  previousStatus?: InvestigationStatus;
+  newStatus?: InvestigationStatus;
+}
+
+export interface InvestigationNote {
+  id: string;
+  author: string;
+  role: string;
+  timestamp: string;
+  note: string;
+}
+
+export interface FraudAlert {
+  id: string;
+  anomalyType: AnomalyType;
+  severity: AlertSeverity;
+  status: InvestigationStatus;
+  invoiceId: string;
+  invoiceNumber: string;
+  supplierId: string;
+  supplierOrg: string;
+  buyerId: string;
+  buyerOrg: string;
+  amount: number;
+  detectedAt: string;
+  headline: string;
+  evidence: {
+    description: string;
+    metrics?: Record<string, any>;
+    conflictingInvoiceId?: string;
+    conflictingTxId?: string;
+    expectedValue?: string | number;
+    observedValue?: string | number;
+    drunixProof?: {
+      blockNumber: number;
+      txId: string;
+      signatureHash: string;
+      documentHash?: string;
+    };
+  };
+  geminiExplanation?: string;
+  investigationNotes: InvestigationNote[];
+  auditTrail: AuditLogEntry[];
+}
+
+export interface FraudMetrics {
+  totalAlerts: number;
+  highSeverityCount: number;
+  openCases: number;
+  underReviewCases: number;
+  resolvedCases: number;
+  falsePositives: number;
+  severityBreakdown: {
+    critical: number;
+    high: number;
+    medium: number;
+    low: number;
+  };
+  statusBreakdown: {
+    open: number;
+    underReview: number;
+    resolved: number;
+    falsePositive: number;
+  };
+}
+
+export type ForecastScenario = 'BASELINE' | 'EARLY_PAYMENT' | 'DELAYED_PAYMENT' | 'DRUNIX_FINANCING';
+
+export interface ForecastBucket {
+  periodLabel: string;
+  daysRange: string;
+  expectedAmount: number;
+  optimisticAmount: number;
+  conservativeAmount: number;
+  invoicesCount: number;
+  confidenceScore: number;
+  isRuleBasedEstimate: boolean;
+}
+
+export interface OverdueInvoiceItem {
+  id: string;
+  invoiceNumber: string;
+  counterParty: string;
+  amount: number;
+  dueDate: string;
+  daysOverdue: number;
+  status: string;
+  drunixTxId: string;
+}
+
+export interface CashFlowForecastResult {
+  role: 'SUPPLIER' | 'BUYER' | 'FINANCIER' | 'EXPLORER';
+  userOrg: string;
+  currency: string;
+  generatedAt: string;
+  activeScenario: ForecastScenario;
+  metrics: {
+    totalOutstanding: number;
+    totalOverdue: number;
+    totalSettled: number;
+    overdueCount: number;
+    averageSettlementLagDays: number;
+    acceleratedLiquidityPotentialINR: number;
+  };
+  horizonSummary: {
+    next7Days: number;
+    next30Days: number;
+    next90Days: number;
+  };
+  timelineBuckets: ForecastBucket[];
+  overdueInvoices: OverdueInvoiceItem[];
+  methodologyExplanation: {
+    approach: string;
+    historicalDataUsed: boolean;
+    buyerSampleCount: number;
+    notes: string[];
+  };
+  geminiInsightsBrief: string;
+}
+
+export type RiskLevel = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+
+export interface DetectedRiskFactor {
+  id: string;
+  category: 'REFERENCE' | 'AMOUNT' | 'DATE_TERMS' | 'PO_RECONCILIATION' | 'ENDORSEMENT_STATE' | 'CREDIT_MITIGANT';
+  title: string;
+  severity: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+  scoreImpact: number;
+  description: string;
+  evidence: Record<string, any>;
+}
+
+export interface GeminiRiskExplanation {
+  executiveSummary: string;
+  keyObservations: string[];
+  underwritingAssessment: string;
+  recommendedAction: string;
+}
+
+export interface InvoiceRiskAssessment {
+  id: string;
+  invoiceId: string;
+  invoiceNumber: string;
+  supplierOrg: string;
+  buyerOrg: string;
+  amount: number;
+  currency: string;
+  riskScore: number; // 0 to 100
+  riskLevel: RiskLevel;
+  confidenceScore: number;
+  detectedFactors: DetectedRiskFactor[];
+  evidence: {
+    drunixProof: {
+      blockNumber: number;
+      txId: string;
+      signatureHash?: string;
+      documentHash?: string;
+    };
+    poMatch?: {
+      poNumber?: string;
+      registered: boolean;
+      amountDifference?: number;
+      isExactMatch?: boolean;
+    };
+    statisticalBaseline?: {
+      historicalAverage?: number;
+      zScore?: number;
+      multipleOfMean?: number;
+      priorInvoicesCount: number;
+    };
+  };
+  explanation: GeminiRiskExplanation;
+  recommendedAction: string;
+  analyzedAt: string;
+  analyzedBy: string;
+}
+

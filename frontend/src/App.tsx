@@ -7,9 +7,13 @@ import { BlockchainProofModal } from './components/BlockchainProofModal';
 import { DoubleFinancingDemoModal } from './components/DoubleFinancingDemoModal';
 import { CreateInvoiceModal } from './components/CreateInvoiceModal';
 import { DocumentReviewWorkspace } from './components/DocumentReviewWorkspace';
+import { CopilotChatDrawer } from './components/CopilotChatDrawer';
 import { NetworkExplorerView } from './components/NetworkExplorerView';
+import { FraudCenterView } from './components/FraudCenterView';
+import { CashFlowForecastingView } from './components/CashFlowForecastingView';
+import { InvoiceRiskAnalysisView } from './components/InvoiceRiskAnalysisView';
 import { Invoice, AnalyticsMetrics, UserPersona } from './types';
-import { Zap, ShieldCheck, Clock, TrendingUp, DollarSign } from 'lucide-react';
+import { Zap, ShieldCheck, Clock, TrendingUp, DollarSign, Bot, Sparkles } from 'lucide-react';
 
 const PERSONAS: UserPersona[] = [
   {
@@ -44,7 +48,7 @@ const PERSONAS: UserPersona[] = [
 
 export const App: React.FC = () => {
   const [currentPersona, setCurrentPersona] = useState<UserPersona>(PERSONAS[0]);
-  const [activeTab, setActiveTab] = useState<'INVOICES' | 'NETWORK' | 'ANALYTICS'>('INVOICES');
+  const [activeTab, setActiveTab] = useState<'INVOICES' | 'NETWORK' | 'ANALYTICS' | 'FRAUD_CENTER' | 'CASH_FLOW' | 'RISK_ENGINE'>('INVOICES');
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [metrics, setMetrics] = useState<AnalyticsMetrics | null>(null);
   const [blockHeight, setBlockHeight] = useState<number>(1045);
@@ -55,6 +59,7 @@ export const App: React.FC = () => {
   const [isDoubleFinancingModalOpen, setIsDoubleFinancingModalOpen] = useState(false);
   const [isCreateInvoiceModalOpen, setIsCreateInvoiceModalOpen] = useState(false);
   const [isDocWorkspaceOpen, setIsDocWorkspaceOpen] = useState(false);
+  const [isCopilotOpen, setIsCopilotOpen] = useState(false);
 
   // Filter
   const [filterStatus, setFilterStatus] = useState<string>('ALL');
@@ -122,6 +127,7 @@ export const App: React.FC = () => {
           blockHeight={blockHeight}
           onOpenCreateInvoice={() => setIsCreateInvoiceModalOpen(true)}
           onOpenDocIntelligence={() => setIsDocWorkspaceOpen(true)}
+          onOpenCopilot={() => setIsCopilotOpen(true)}
           onOpenDoubleFinancing={() => setIsDoubleFinancingModalOpen(true)}
           onRefresh={fetchData}
         />
@@ -278,6 +284,41 @@ export const App: React.FC = () => {
               </div>
             </div>
           )}
+
+          {/* TAB 4: FRAUD & ANOMALY DETECTION CENTER */}
+          {activeTab === 'FRAUD_CENTER' && (
+            <FraudCenterView
+              currentPersona={currentPersona}
+              onInspectInvoiceProof={(invId) => {
+                const found = invoices.find(
+                  (i) => i.id.toLowerCase() === invId.toLowerCase() || i.invoiceNumber.toLowerCase() === invId.toLowerCase()
+                );
+                if (found) setSelectedProofInvoice(found);
+              }}
+            />
+          )}
+
+          {/* TAB 5: AI CASH-FLOW FORECASTING & RUNWAY */}
+          {activeTab === 'CASH_FLOW' && (
+            <CashFlowForecastingView
+              currentPersona={currentPersona}
+              onInspectInvoiceProof={(invId) => {
+                const found = invoices.find(
+                  (i) => i.id.toLowerCase() === invId.toLowerCase() || i.invoiceNumber.toLowerCase() === invId.toLowerCase()
+                );
+                if (found) setSelectedProofInvoice(found);
+              }}
+            />
+          )}
+
+          {/* TAB 6: AI-POWERED INVOICE RISK ENGINE */}
+          {activeTab === 'RISK_ENGINE' && (
+            <InvoiceRiskAnalysisView
+              currentPersona={currentPersona}
+              invoices={invoices}
+              onRefreshData={fetchData}
+            />
+          )}
         </main>
       </div>
 
@@ -305,6 +346,35 @@ export const App: React.FC = () => {
         onClose={() => setIsDocWorkspaceOpen(false)}
         onInvoiceCreated={fetchData}
         currentPersona={currentPersona}
+      />
+
+      {/* Floating AI Copilot Action Button */}
+      <button
+        onClick={() => setIsCopilotOpen(true)}
+        className="fixed bottom-6 right-6 z-40 p-3.5 rounded-full bg-gradient-to-r from-navy via-slate-900 to-royal text-white shadow-xl hover:shadow-2xl hover:scale-105 active:scale-95 transition-all flex items-center space-x-2.5 border-2 border-white/80 group cursor-pointer"
+        title="Ask InvoiceNet AI Copilot (DRUNIX Grounded)"
+      >
+        <Sparkles className="h-5 w-5 text-amber-300 group-hover:rotate-12 transition-transform" />
+        <span className="text-xs font-bold tracking-wide pr-1 hidden sm:inline">Ask Copilot</span>
+        <span className="flex h-2 w-2 relative">
+          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+          <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+        </span>
+      </button>
+
+      {/* Role-Aware AI Copilot Chat Drawer */}
+      <CopilotChatDrawer
+        isOpen={isCopilotOpen}
+        onClose={() => setIsCopilotOpen(false)}
+        currentPersona={currentPersona}
+        onInspectInvoiceProof={(invId) => {
+          const found = invoices.find(
+            (i) => i.id.toLowerCase() === invId.toLowerCase() || i.invoiceNumber.toLowerCase() === invId.toLowerCase()
+          );
+          if (found) {
+            setSelectedProofInvoice(found);
+          }
+        }}
       />
     </div>
   );

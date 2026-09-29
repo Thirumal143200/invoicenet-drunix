@@ -1,13 +1,14 @@
 import React from 'react';
 import { UserPersona } from '../types';
-import { Plus, RefreshCw, ShieldAlert, Cpu } from 'lucide-react';
+import { Plus, RefreshCw, ShieldAlert, Cpu, Sparkles, Bot } from 'lucide-react';
 
 interface HeaderProps {
   currentPersona: UserPersona;
-  activeTab: 'INVOICES' | 'NETWORK' | 'ANALYTICS';
+  activeTab: 'INVOICES' | 'NETWORK' | 'ANALYTICS' | 'FRAUD_CENTER' | 'CASH_FLOW' | 'RISK_ENGINE';
   blockHeight: number;
   onOpenCreateInvoice: () => void;
   onOpenDocIntelligence: () => void;
+  onOpenCopilot: () => void;
   onOpenDoubleFinancing: () => void;
   onRefresh: () => void;
 }
@@ -18,6 +19,7 @@ export const Header: React.FC<HeaderProps> = ({
   blockHeight,
   onOpenCreateInvoice,
   onOpenDocIntelligence,
+  onOpenCopilot,
   onOpenDoubleFinancing,
   onRefresh,
 }) => {
@@ -29,6 +31,12 @@ export const Header: React.FC<HeaderProps> = ({
         return 'DRUNIX Consensus & Distributed Ledger Explorer';
       case 'ANALYTICS':
         return 'Working Capital Impact & Pricing Analytics';
+      case 'FRAUD_CENTER':
+        return 'Fraud & Anomaly Detection Center';
+      case 'CASH_FLOW':
+        return 'Cash-Flow Forecasting & Liquidity Runway';
+      case 'RISK_ENGINE':
+        return 'AI-Powered Invoice Risk Engine';
     }
   };
 
@@ -40,6 +48,12 @@ export const Header: React.FC<HeaderProps> = ({
         return 'Live peer nodes, Raft orderer, and YugabyteDB state query matrix';
       case 'ANALYTICS':
         return 'Comparative factoring APR benchmarks and liquidity velocity for Indian MSMEs';
+      case 'FRAUD_CENTER':
+        return 'Continuous deterministic rules, statistical outlier detection, and auditor investigation queue';
+      case 'CASH_FLOW':
+        return 'Predictive cash flow modeling, confidence intervals, scenario simulation & DRUNIX factoring acceleration';
+      case 'RISK_ENGINE':
+        return 'Explainable 0-100 risk scoring index, PO reconciliation, and Google Gemini 2.5 Flash underwriting synthesis';
     }
   };
 
@@ -82,6 +96,19 @@ export const Header: React.FC<HeaderProps> = ({
               </button>
             </div>
           )}
+
+          {/* AI Copilot Action - Available for all roles */}
+          <button
+            onClick={onOpenCopilot}
+            className="px-3.5 py-2 rounded-lg bg-navy hover:bg-slate-800 text-white font-semibold text-xs flex items-center space-x-1.5 transition-all shadow-sm border border-slate-700/80 group"
+            title="Ask InvoiceNet AI Copilot (DRUNIX Grounded)"
+          >
+            <Sparkles className="h-4 w-4 text-amber-300 group-hover:scale-110 transition-transform" />
+            <span>AI Copilot</span>
+            <span className="hidden lg:inline text-[9px] font-mono px-1 py-0.2 rounded bg-royal text-blue-100 font-semibold ml-0.5">
+              Role: {currentPersona.role}
+            </span>
+          </button>
 
           {/* Refresh Button */}
           <button

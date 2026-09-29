@@ -11,14 +11,16 @@ import {
   Store,
   Eye,
   CheckCircle2,
+  TrendingUp,
+  Cpu,
 } from 'lucide-react';
 
 interface SidebarProps {
   currentPersona: UserPersona;
   onSelectPersona: (persona: UserPersona) => void;
   personas: UserPersona[];
-  activeTab: 'INVOICES' | 'NETWORK' | 'ANALYTICS';
-  onSelectTab: (tab: 'INVOICES' | 'NETWORK' | 'ANALYTICS') => void;
+  activeTab: 'INVOICES' | 'NETWORK' | 'ANALYTICS' | 'FRAUD_CENTER' | 'CASH_FLOW' | 'RISK_ENGINE';
+  onSelectTab: (tab: 'INVOICES' | 'NETWORK' | 'ANALYTICS' | 'FRAUD_CENTER' | 'CASH_FLOW' | 'RISK_ENGINE') => void;
   blockHeight: number;
   invoiceCount: number;
   onOpenDoubleFinancingModal: () => void;
@@ -115,6 +117,57 @@ export const Sidebar: React.FC<SidebarProps> = ({
         >
           <BarChart3 className="h-4 w-4" />
           <span>Financial ROI & Analytics</span>
+        </button>
+
+        <button
+          onClick={() => onSelectTab('FRAUD_CENTER')}
+          className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-xs font-semibold transition-all ${
+            activeTab === 'FRAUD_CENTER'
+              ? 'bg-rose-600 text-white shadow-sm'
+              : 'text-slate-300 hover:bg-navy-light hover:text-white'
+          }`}
+        >
+          <div className="flex items-center space-x-2.5">
+            <ShieldAlert className="h-4 w-4 text-amber-400" />
+            <span>Fraud & Anomaly Center</span>
+          </div>
+          <span className="text-[10px] px-1.5 py-0.2 rounded-full font-mono bg-rose-500/30 text-rose-200 border border-rose-400/30 font-bold">
+            Live
+          </span>
+        </button>
+
+        <button
+          onClick={() => onSelectTab('CASH_FLOW')}
+          className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-xs font-semibold transition-all ${
+            activeTab === 'CASH_FLOW'
+              ? 'bg-royal text-white shadow-sm'
+              : 'text-slate-300 hover:bg-navy-light hover:text-white'
+          }`}
+        >
+          <div className="flex items-center space-x-2.5">
+            <TrendingUp className="h-4 w-4 text-emerald-400" />
+            <span>Cash-Flow & Forecasting</span>
+          </div>
+          <span className="text-[10px] px-1.5 py-0.2 rounded-full font-mono bg-emerald-500/30 text-emerald-200 border border-emerald-400/30 font-bold">
+            AI
+          </span>
+        </button>
+
+        <button
+          onClick={() => onSelectTab('RISK_ENGINE')}
+          className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-xs font-semibold transition-all ${
+            activeTab === 'RISK_ENGINE'
+              ? 'bg-royal text-white shadow-sm'
+              : 'text-slate-300 hover:bg-navy-light hover:text-white'
+          }`}
+        >
+          <div className="flex items-center space-x-2.5">
+            <Cpu className="h-4 w-4 text-purple-400" />
+            <span>AI Risk Engine</span>
+          </div>
+          <span className="text-[10px] px-1.5 py-0.2 rounded-full font-mono bg-purple-500/30 text-purple-200 border border-purple-400/30 font-bold">
+            0-100
+          </span>
         </button>
       </div>
 
