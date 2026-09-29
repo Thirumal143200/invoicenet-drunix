@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Invoice, UserPersona } from '../types';
-import { ShieldCheck, Check, X, ArrowUpRight, DollarSign, Building2, Calendar, FileText, ChevronRight } from 'lucide-react';
+import { ShieldCheck, Calendar, Building2, ExternalLink } from 'lucide-react';
 
 interface InvoiceTableProps {
   invoices: Invoice[];
@@ -21,46 +21,45 @@ export const InvoiceTable: React.FC<InvoiceTableProps> = ({
     switch (status) {
       case 'CREATED':
         return (
-          <span className="px-2.5 py-1 rounded-full text-[11px] font-semibold bg-amber-500/10 text-amber-400 border border-amber-500/20">
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-50 text-amber-800 border border-amber-200">
             Awaiting Buyer
           </span>
         );
       case 'ACCEPTED':
         return (
-          <span className="px-2.5 py-1 rounded-full text-[11px] font-semibold bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-50 text-royal border border-blue-200">
             Buyer Endorsed
           </span>
         );
       case 'FINANCING_REQUESTED':
         return (
-          <span className="px-2.5 py-1 rounded-full text-[11px] font-semibold bg-indigo-500/10 text-indigo-300 border border-indigo-500/20 animate-pulse">
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200">
             Open for Bidding
           </span>
         );
       case 'FINANCED':
         return (
-          <span className="px-2.5 py-1 rounded-full text-[11px] font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-            Financed (Tri-Party)
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200">
+            Tri-Party Financed
           </span>
         );
       case 'SETTLED':
         return (
-          <span className="px-2.5 py-1 rounded-full text-[11px] font-semibold bg-slate-500/20 text-slate-300 border border-slate-500/30">
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-700 border border-slate-200">
             Fully Settled
           </span>
         );
       case 'REJECTED':
         return (
-          <span className="px-2.5 py-1 rounded-full text-[11px] font-semibold bg-rose-500/10 text-rose-400 border border-rose-500/20">
-            Disputed / Rejected
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-rose-50 text-rose-700 border border-rose-200">
+            Disputed
           </span>
         );
       default:
-        return <span className="text-slate-400">{status}</span>;
+        return <span className="text-slate-600">{status}</span>;
     }
   };
 
-  // Actions
   const handleAccept = async (id: string) => {
     setActionLoading(id);
     try {
@@ -129,93 +128,95 @@ export const InvoiceTable: React.FC<InvoiceTableProps> = ({
   };
 
   return (
-    <div className="overflow-hidden rounded-2xl glass-panel border border-slate-800">
+    <div className="enterprise-card overflow-hidden">
       <div className="overflow-x-auto">
         <table className="w-full text-left text-xs">
-          <thead className="bg-slate-900/80 text-slate-400 uppercase tracking-wider font-semibold border-b border-slate-800">
+          <thead className="bg-softGray text-slate-600 uppercase tracking-wider font-bold border-b border-softGray-border">
             <tr>
-              <th className="py-3.5 px-4">Invoice / ID</th>
-              <th className="py-3.5 px-4">Parties</th>
-              <th className="py-3.5 px-4">Amount & Due</th>
-              <th className="py-3.5 px-4">Ledger Status</th>
-              <th className="py-3.5 px-4">Endorsements</th>
-              <th className="py-3.5 px-4 text-right">Actions</th>
+              <th className="py-3 px-4">Invoice / ID</th>
+              <th className="py-3 px-4">Counterparties</th>
+              <th className="py-3 px-4">Amount & Term</th>
+              <th className="py-3 px-4">Ledger Status</th>
+              <th className="py-3 px-4">Endorsements</th>
+              <th className="py-3 px-4 text-right">Actions</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-800/60 font-sans">
+          <tbody className="divide-y divide-softGray-border font-sans">
             {invoices.map((inv) => {
               const isLoading = actionLoading === inv.id;
 
               return (
-                <tr key={inv.id} className="hover:bg-slate-850/40 transition-colors group">
-                  {/* Invoice ID */}
-                  <td className="py-4 px-4 font-mono">
-                    <div className="font-bold text-white text-xs">{inv.id}</div>
-                    <div className="text-[11px] text-slate-400 mt-0.5">{inv.invoiceNumber}</div>
-                    <div className="text-[10px] text-slate-500 truncate max-w-[180px]">{inv.description}</div>
-                  </td>
-
-                  {/* Parties */}
-                  <td className="py-4 px-4">
-                    <div className="flex items-center space-x-1.5 text-slate-300">
-                      <Building2 className="h-3 w-3 text-cyan-400" />
-                      <span className="font-medium truncate max-w-[180px]">{inv.buyerOrg}</span>
-                    </div>
-                    <div className="text-[11px] text-slate-500 mt-1">
-                      From: <span className="text-slate-400">{inv.supplierOrg}</span>
+                <tr key={inv.id} className="hover:bg-slate-50/80 transition-colors">
+                  {/* Invoice ID & Number */}
+                  <td className="py-3.5 px-4 font-mono">
+                    <div className="font-bold text-navy text-xs">{inv.id}</div>
+                    <div className="text-[11px] text-slate-500 font-semibold">{inv.invoiceNumber}</div>
+                    <div className="text-[10px] text-slate-400 font-sans truncate max-w-[200px] mt-0.5">
+                      {inv.description}
                     </div>
                   </td>
 
-                  {/* Amount & Due */}
-                  <td className="py-4 px-4">
-                    <div className="font-bold text-white font-mono text-sm">
+                  {/* Counterparties */}
+                  <td className="py-3.5 px-4">
+                    <div className="flex items-center space-x-1.5 text-navy font-semibold">
+                      <Building2 className="h-3.5 w-3.5 text-royal flex-shrink-0" />
+                      <span className="truncate max-w-[200px]">{inv.buyerOrg}</span>
+                    </div>
+                    <div className="text-[11px] text-slate-500 mt-0.5">
+                      Supplier: <span className="text-slate-700 font-medium">{inv.supplierOrg}</span>
+                    </div>
+                  </td>
+
+                  {/* Amount & Due Date */}
+                  <td className="py-3.5 px-4">
+                    <div className="font-bold text-navy font-mono text-sm">
                       ₹{inv.amount.toLocaleString('en-IN')}
                     </div>
-                    <div className="flex items-center space-x-1 text-[11px] text-slate-400 mt-0.5">
-                      <Calendar className="h-3 w-3 text-slate-500" />
+                    <div className="flex items-center space-x-1 text-[11px] text-slate-500 mt-0.5">
+                      <Calendar className="h-3 w-3 text-slate-400" />
                       <span>Due: {new Date(inv.dueDate).toLocaleDateString()}</span>
                     </div>
                   </td>
 
                   {/* Status */}
-                  <td className="py-4 px-4">
+                  <td className="py-3.5 px-4">
                     {getStatusBadge(inv.status)}
                     {inv.status === 'FINANCED' && (
-                      <div className="text-[10px] text-emerald-400/90 font-mono mt-1">
+                      <div className="text-[10px] text-emerald-700 font-mono font-medium mt-1">
                         @ {inv.discountRate}% APR by {inv.financierOrg?.split(' ')[0]}
                       </div>
                     )}
                   </td>
 
                   {/* Endorsement Chain */}
-                  <td className="py-4 px-4">
+                  <td className="py-3.5 px-4">
                     <div className="flex items-center space-x-1">
                       {['SupplierMSP', 'BuyerMSP', 'FinancierMSP'].map((msp, idx) => {
                         const isEndorsed = inv.endorsementHistory.some((e) => e.orgMsp === msp);
                         return (
                           <span
                             key={idx}
-                            title={`${msp}: ${isEndorsed ? 'Endorsed' : 'Pending'}`}
-                            className={`h-2.5 w-6 rounded-sm ${
-                              isEndorsed ? 'bg-cyan-400 shadow-sm shadow-cyan-500/50' : 'bg-slate-800'
+                            title={`${msp}: ${isEndorsed ? 'Endorsed & Signed' : 'Pending'}`}
+                            className={`h-2.5 w-5 rounded-sm transition-all ${
+                              isEndorsed ? 'bg-emerald shadow-sm' : 'bg-slate-200'
                             }`}
                           />
                         );
                       })}
                     </div>
-                    <span className="text-[10px] text-slate-400 font-mono mt-1 block">
-                      {inv.endorsementHistory.length} of 3 Orgs
+                    <span className="text-[10px] text-slate-500 font-mono mt-1 block">
+                      {inv.endorsementHistory.length} of 3 Orgs Verified
                     </span>
                   </td>
 
                   {/* Actions Column */}
-                  <td className="py-4 px-4 text-right space-x-2">
+                  <td className="py-3.5 px-4 text-right space-x-2">
                     {/* Buyer Accept */}
                     {currentPersona.role === 'BUYER' && inv.status === 'CREATED' && (
                       <button
                         disabled={isLoading}
                         onClick={() => handleAccept(inv.id)}
-                        className="px-3 py-1.5 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 font-semibold border border-emerald-500/30 transition-all text-xs"
+                        className="px-3 py-1.5 rounded-lg bg-emerald hover:bg-emerald-dark text-white font-semibold text-xs transition-all shadow-sm"
                       >
                         {isLoading ? 'Signing...' : 'Accept on DRUNIX'}
                       </button>
@@ -226,7 +227,7 @@ export const InvoiceTable: React.FC<InvoiceTableProps> = ({
                       <button
                         disabled={isLoading}
                         onClick={() => handleRequestFinancing(inv.id)}
-                        className="px-3 py-1.5 rounded-lg bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-300 font-semibold border border-indigo-500/30 transition-all text-xs"
+                        className="px-3 py-1.5 rounded-lg bg-royal hover:bg-royal-hover text-white font-semibold text-xs transition-all shadow-sm"
                       >
                         {isLoading ? 'Posting...' : 'Request Financing'}
                       </button>
@@ -238,9 +239,9 @@ export const InvoiceTable: React.FC<InvoiceTableProps> = ({
                         <button
                           disabled={isLoading}
                           onClick={() => handleFinance(inv.id, inv.amount)}
-                          className="px-3 py-1.5 rounded-lg bg-gradient-to-r from-emerald-600 to-cyan-600 hover:from-emerald-500 hover:to-cyan-500 text-white font-bold transition-all shadow-md text-xs"
+                          className="px-3.5 py-1.5 rounded-lg bg-royal hover:bg-royal-hover text-white font-bold text-xs transition-all shadow-sm"
                         >
-                          {isLoading ? 'Executing...' : 'Finance @ 11% APR'}
+                          {isLoading ? 'Financing...' : 'Finance @ 11% APR'}
                         </button>
                       )}
 
@@ -249,7 +250,7 @@ export const InvoiceTable: React.FC<InvoiceTableProps> = ({
                       <button
                         disabled={isLoading}
                         onClick={() => handleSettle(inv.id)}
-                        className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold border border-slate-700 text-xs"
+                        className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-900 text-white font-semibold text-xs transition-all shadow-sm"
                       >
                         {isLoading ? 'Settling...' : 'Settle Invoice'}
                       </button>
@@ -258,7 +259,7 @@ export const InvoiceTable: React.FC<InvoiceTableProps> = ({
                     {/* Proof Inspector Button */}
                     <button
                       onClick={() => onInspectProof(inv)}
-                      className="px-2.5 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-cyan-400 hover:text-cyan-300 border border-slate-800 hover:border-cyan-500/40 font-mono text-[11px] transition-all"
+                      className="px-2.5 py-1.5 rounded-lg bg-white hover:bg-softGray text-royal border border-softGray-border font-mono text-[11px] font-semibold transition-all shadow-sm"
                     >
                       Proof
                     </button>
