@@ -1,0 +1,169 @@
+---
+Organizations:
+  - &OrdererOrg
+    Name: OrdererOrg
+    ID: OrdererMSP
+    MSPDir: crypto-config/ordererOrganizations/drunix.net/msp
+    Policies:
+      Reader:
+        Type: Signature
+        Rule: "OR('OrdererMSP.member')"
+      Writer:
+        Type: Signature
+        Rule: "OR('OrdererMSP.member')"
+      Admin:
+        Type: Signature
+        Rule: "OR('OrdererMSP.admin')"
+
+  - &SupplierOrg
+    Name: SupplierMSP
+    ID: SupplierMSP
+    MSPDir: crypto-config/peerOrganizations/supplier.drunix.net/msp
+    Policies:
+      Reader:
+        Type: Signature
+        Rule: "OR('SupplierMSP.admin', 'SupplierMSP.peer', 'SupplierMSP.client')"
+      Writer:
+        Type: Signature
+        Rule: "OR('SupplierMSP.admin', 'SupplierMSP.client')"
+      Admin:
+        Type: Signature
+        Rule: "OR('SupplierMSP.admin')"
+      Endorsement:
+        Type: Signature
+        Rule: "OR('SupplierMSP.peer')"
+    AnchorPeers:
+      - Host: peer0.supplier.drunix.net
+        Port: 7051
+
+  - &BuyerOrg
+    Name: BuyerMSP
+    ID: BuyerMSP
+    MSPDir: crypto-config/peerOrganizations/buyer.drunix.net/msp
+    Policies:
+      Reader:
+        Type: Signature
+        Rule: "OR('BuyerMSP.admin', 'BuyerMSP.peer', 'BuyerMSP.client')"
+      Writer:
+        Type: Signature
+        Rule: "OR('BuyerMSP.admin', 'BuyerMSP.client')"
+      Admin:
+        Type: Signature
+        Rule: "OR('BuyerMSP.admin')"
+      Endorsement:
+        Type: Signature
+        Rule: "OR('BuyerMSP.peer')"
+    AnchorPeers:
+      - Host: peer0.buyer.drunix.net
+        Port: 8051
+
+  - &FinancierOrg
+    Name: FinancierMSP
+    ID: FinancierMSP
+    MSPDir: crypto-config/peerOrganizations/financier.drunix.net/msp
+    Policies:
+      Reader:
+        Type: Signature
+        Rule: "OR('FinancierMSP.admin', 'FinancierMSP.peer', 'FinancierMSP.client')"
+      Writer:
+        Type: Signature
+        Rule: "OR('FinancierMSP.admin', 'FinancierMSP.client')"
+      Admin:
+        Type: Signature
+        Rule: "OR('FinancierMSP.admin')"
+      Endorsement:
+        Type: Signature
+        Rule: "OR('FinancierMSP.peer')"
+    AnchorPeers:
+      - Host: peer0.financier.drunix.net
+        Port: 9051
+
+Capabilities:
+  Channel: &ChannelCapabilities
+    V2_0: true
+  Orderer: &OrdererCapabilities
+    V2_0: true
+  Application: &ApplicationCapabilities
+    V2_5: true
+
+Application: &ApplicationDefaults
+  Organizations:
+  Policies:
+    LifecycleEndorsement:
+      Type: ImplicitMeta
+      Rule: "MAJORITY Endorsement"
+    Endorsement:
+      Type: ImplicitMeta
+      Rule: "MAJORITY Endorsement"
+    Read:
+      Type: ImplicitMeta
+      Rule: "ANY Readers"
+    Write:
+      Type: ImplicitMeta
+      Rule: "ANY Writers"
+    Admin:
+      Type: ImplicitMeta
+      Rule: "MAJORITY Admins"
+  Capabilities:
+    <<: *ApplicationCapabilities
+
+Orderer: &OrdererDefaults
+  OrdererType: etcdraft
+  Addresses:
+    - orderer.drunix.net:7050
+  BatchTimeout: 2s
+  BatchSize:
+    MaxMessageCount: 100
+    AbsoluteMaxBytes: 99 MB
+    PreferredMaxBytes: 512 KB
+  EtcdRaft:
+    Consenters:
+      - Host: orderer.drunix.net
+        Port: 7050
+        ClientTLSCert: crypto-config/ordererOrganizations/drunix.net/orderers/orderer.drunix.net/tls/server.crt
+        ServerTLSCert: crypto-config/ordererOrganizations/drunix.net/orderers/orderer.drunix.net/tls/server.crt
+  Organizations:
+  Policies:
+    Readers:
+      Type: ImplicitMeta
+      Rule: "ANY Readers"
+    Writers:
+      Type: ImplicitMeta
+      Rule: "ANY Writers"
+    Admins:
+      Type: ImplicitMeta
+      Rule: "MAJORITY Admins"
+    BlockValidation:
+      Type: ImplicitMeta
+      Rule: "ANY Writers"
+
+Channel: &ChannelDefaults
+  Policies:
+    Read:
+      Type: ImplicitMeta
+      Rule: "ANY Readers"
+    Write:
+      Type: ImplicitMeta
+      Rule: "ANY Writers"
+    Admin:
+      Type: ImplicitMeta
+      Rule: "MAJORITY Admins"
+  Capabilities:
+    <<: *ChannelCapabilities
+
+Profiles:
+  InvoiceNetChannel:
+    Consortium: DRUNIXConsortium
+    <<: *ChannelDefaults
+    Orderer:
+      <<: *OrdererDefaults
+      Organizations:
+        - *OrdererOrg
+      Capabilities: *OrdererCapabilities
+    Application:
+      <<: *ApplicationDefaults
+      Organizations:
+        - *SupplierOrg
+        - *BuyerOrg
+        - *FinancierOrg
+      Capabilities: *ApplicationCapabilities

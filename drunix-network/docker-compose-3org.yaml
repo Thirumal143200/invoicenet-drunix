@@ -1,0 +1,202 @@
+version: '3.8'
+
+networks:
+  drunix_invoicenet:
+    name: drunix_invoicenet
+
+volumes:
+  orderer.drunix.net:
+  peer0.supplier.drunix.net:
+  peer0.buyer.drunix.net:
+  peer0.financier.drunix.net:
+  yugabyte_data:
+
+services:
+  # DRUNIX Raft Orderer
+  orderer.drunix.net:
+    image: hyperledger/fabric-orderer:2.5
+    container_name: orderer.drunix.net
+    environment:
+      - FABRIC_LOGGING_SPEC=INFO
+      - ORDERER_GENERAL_LISTENADDRESS=0.0.0.0
+      - ORDERER_GENERAL_LISTENPORT=7050
+      - ORDERER_GENERAL_LOCALMSPID=OrdererMSP
+      - ORDERER_GENERAL_LOCALMSPDIR=/var/hyperledger/orderer/msp
+      - ORDERER_GENERAL_TLS_ENABLED=true
+      - ORDERER_GENERAL_TLS_PRIVATEKEY=/var/hyperledger/orderer/tls/server.key
+      - ORDERER_GENERAL_TLS_CERTIFICATE=/var/hyperledger/orderer/tls/server.crt
+      - ORDERER_GENERAL_TLS_ROOTCAS=[/var/hyperledger/orderer/tls/ca.crt]
+      - ORDERER_GENERAL_CLUSTER_CLIENTCERTIFICATE=/var/hyperledger/orderer/tls/server.crt
+      - ORDERER_GENERAL_CLUSTER_CLIENTPRIVATEKEY=/var/hyperledger/orderer/tls/server.key
+      - ORDERER_GENERAL_CLUSTER_ROOTCAS=[/var/hyperledger/orderer/tls/ca.crt]
+      - ORDERER_GENERAL_BOOTSTRAPMETHOD=none
+      - ORDERER_CHANNELPARTICIPATION_ENABLED=true
+      - ORDERER_ADMIN_LISTENADDRESS=0.0.0.0:7053
+    working_dir: /opt/gopath/src/github.com/hyperledger/fabric
+    command: orderer
+    volumes:
+      - ./crypto-config/ordererOrganizations/drunix.net/orderers/orderer.drunix.net/msp:/var/hyperledger/orderer/msp
+      - ./crypto-config/ordererOrganizations/drunix.net/orderers/orderer.drunix.net/tls/:/var/hyperledger/orderer/tls
+      - orderer.drunix.net:/var/hyperledger/production/orderer
+    ports:
+      - "7050:7050"
+      - "7053:7053"
+    networks:
+      - drunix_invoicenet
+
+  # Org 1: Supplier Peer (Lite Endorsement & Commit Peer)
+  peer0.supplier.drunix.net:
+    image: hyperledger/fabric-peer:2.5
+    container_name: peer0.supplier.drunix.net
+    environment:
+      - FABRIC_LOGGING_SPEC=INFO
+      - CORE_VM_ENDPOINT=unix:///host/var/run/docker.sock
+      - CORE_PEER_ID=peer0.supplier.drunix.net
+      - CORE_PEER_ADDRESS=peer0.supplier.drunix.net:7051
+      - CORE_PEER_LISTENADDRESS=0.0.0.0:7051
+      - CORE_PEER_CHAINCODEADDRESS=peer0.supplier.drunix.net:7052
+      - CORE_PEER_CHAINCODELISTENADDRESS=0.0.0.0:7052
+      - CORE_PEER_GOSSIP_BOOTSTRAP=peer0.supplier.drunix.net:7051
+      - CORE_PEER_GOSSIP_EXTERNALENDPOINT=peer0.supplier.drunix.net:7051
+      - CORE_PEER_LOCALMSPID=SupplierMSP
+      - CORE_PEER_MSPCONFIGPATH=/etc/hyperledger/fabric/msp
+      - CORE_PEER_TLS_ENABLED=true
+      - CORE_PEER_TLS_CERT_FILE=/etc/hyperledger/fabric/tls/server.crt
+      - CORE_PEER_TLS_KEY_FILE=/etc/hyperledger/fabric/tls/server.key
+      - CORE_PEER_TLS_ROOTCERT_FILE=/etc/hyperledger/fabric/tls/ca.crt
+      - CORE_LEDGER_STATE_STATEDATABASE=CouchDB
+      - CORE_LEDGER_STATE_COUCHDBCONFIG_COUCHDBADDRESS=couchdb0.supplier:5984
+      - CORE_LEDGER_STATE_COUCHDBCONFIG_USERNAME=admin
+      - CORE_LEDGER_STATE_COUCHDBCONFIG_PASSWORD=adminpw
+    working_dir: /opt/gopath/src/github.com/hyperledger/fabric/peer
+    command: peer node start
+    volumes:
+      - /var/run/:/host/var/run/
+      - ./crypto-config/peerOrganizations/supplier.drunix.net/peers/peer0.supplier.drunix.net/msp:/etc/hyperledger/fabric/msp
+      - ./crypto-config/peerOrganizations/supplier.drunix.net/peers/peer0.supplier.drunix.net/tls:/etc/hyperledger/fabric/tls
+      - peer0.supplier.drunix.net:/var/hyperledger/production
+    ports:
+      - "7051:7051"
+    networks:
+      - drunix_invoicenet
+
+  couchdb0.supplier:
+    image: couchdb:3.3.2
+    container_name: couchdb0.supplier
+    environment:
+      - COUCHDB_USER=admin
+      - COUCHDB_PASSWORD=adminpw
+    ports:
+      - "5984:5984"
+    networks:
+      - drunix_invoicenet
+
+  # Org 2: Buyer Peer (Lite Endorsement & Commit Peer)
+  peer0.buyer.drunix.net:
+    image: hyperledger/fabric-peer:2.5
+    container_name: peer0.buyer.drunix.net
+    environment:
+      - FABRIC_LOGGING_SPEC=INFO
+      - CORE_VM_ENDPOINT=unix:///host/var/run/docker.sock
+      - CORE_PEER_ID=peer0.buyer.drunix.net
+      - CORE_PEER_ADDRESS=peer0.buyer.drunix.net:8051
+      - CORE_PEER_LISTENADDRESS=0.0.0.0:8051
+      - CORE_PEER_CHAINCODEADDRESS=peer0.buyer.drunix.net:8052
+      - CORE_PEER_CHAINCODELISTENADDRESS=0.0.0.0:8052
+      - CORE_PEER_GOSSIP_BOOTSTRAP=peer0.buyer.drunix.net:8051
+      - CORE_PEER_GOSSIP_EXTERNALENDPOINT=peer0.buyer.drunix.net:8051
+      - CORE_PEER_LOCALMSPID=BuyerMSP
+      - CORE_PEER_MSPCONFIGPATH=/etc/hyperledger/fabric/msp
+      - CORE_PEER_TLS_ENABLED=true
+      - CORE_PEER_TLS_CERT_FILE=/etc/hyperledger/fabric/tls/server.crt
+      - CORE_PEER_TLS_KEY_FILE=/etc/hyperledger/fabric/tls/server.key
+      - CORE_PEER_TLS_ROOTCERT_FILE=/etc/hyperledger/fabric/tls/ca.crt
+      - CORE_LEDGER_STATE_STATEDATABASE=CouchDB
+      - CORE_LEDGER_STATE_COUCHDBCONFIG_COUCHDBADDRESS=couchdb0.buyer:5984
+      - CORE_LEDGER_STATE_COUCHDBCONFIG_USERNAME=admin
+      - CORE_LEDGER_STATE_COUCHDBCONFIG_PASSWORD=adminpw
+    working_dir: /opt/gopath/src/github.com/hyperledger/fabric/peer
+    command: peer node start
+    volumes:
+      - /var/run/:/host/var/run/
+      - ./crypto-config/peerOrganizations/buyer.drunix.net/peers/peer0.buyer.drunix.net/msp:/etc/hyperledger/fabric/msp
+      - ./crypto-config/peerOrganizations/buyer.drunix.net/peers/peer0.buyer.drunix.net/tls:/etc/hyperledger/fabric/tls
+      - peer0.buyer.drunix.net:/var/hyperledger/production
+    ports:
+      - "8051:8051"
+    networks:
+      - drunix_invoicenet
+
+  couchdb0.buyer:
+    image: couchdb:3.3.2
+    container_name: couchdb0.buyer
+    environment:
+      - COUCHDB_USER=admin
+      - COUCHDB_PASSWORD=adminpw
+    ports:
+      - "6984:5984"
+    networks:
+      - drunix_invoicenet
+
+  # Org 3: Financier Peer (Lite Endorsement & Commit Peer)
+  peer0.financier.drunix.net:
+    image: hyperledger/fabric-peer:2.5
+    container_name: peer0.financier.drunix.net
+    environment:
+      - FABRIC_LOGGING_SPEC=INFO
+      - CORE_VM_ENDPOINT=unix:///host/var/run/docker.sock
+      - CORE_PEER_ID=peer0.financier.drunix.net
+      - CORE_PEER_ADDRESS=peer0.financier.drunix.net:9051
+      - CORE_PEER_LISTENADDRESS=0.0.0.0:9051
+      - CORE_PEER_CHAINCODEADDRESS=peer0.financier.drunix.net:9052
+      - CORE_PEER_CHAINCODELISTENADDRESS=0.0.0.0:9052
+      - CORE_PEER_GOSSIP_BOOTSTRAP=peer0.financier.drunix.net:9051
+      - CORE_PEER_GOSSIP_EXTERNALENDPOINT=peer0.financier.drunix.net:9051
+      - CORE_PEER_LOCALMSPID=FinancierMSP
+      - CORE_PEER_MSPCONFIGPATH=/etc/hyperledger/fabric/msp
+      - CORE_PEER_TLS_ENABLED=true
+      - CORE_PEER_TLS_CERT_FILE=/etc/hyperledger/fabric/tls/server.crt
+      - CORE_PEER_TLS_KEY_FILE=/etc/hyperledger/fabric/tls/server.key
+      - CORE_PEER_TLS_ROOTCERT_FILE=/etc/hyperledger/fabric/tls/ca.crt
+      - CORE_LEDGER_STATE_STATEDATABASE=CouchDB
+      - CORE_LEDGER_STATE_COUCHDBCONFIG_COUCHDBADDRESS=couchdb0.financier:5984
+      - CORE_LEDGER_STATE_COUCHDBCONFIG_USERNAME=admin
+      - CORE_LEDGER_STATE_COUCHDBCONFIG_PASSWORD=adminpw
+    working_dir: /opt/gopath/src/github.com/hyperledger/fabric/peer
+    command: peer node start
+    volumes:
+      - /var/run/:/host/var/run/
+      - ./crypto-config/peerOrganizations/financier.drunix.net/peers/peer0.financier.drunix.net/msp:/etc/hyperledger/fabric/msp
+      - ./crypto-config/peerOrganizations/financier.drunix.net/peers/peer0.financier.drunix.net/tls:/etc/hyperledger/fabric/tls
+      - peer0.financier.drunix.net:/var/hyperledger/production
+    ports:
+      - "9051:9051"
+    networks:
+      - drunix_invoicenet
+
+  couchdb0.financier:
+    image: couchdb:3.3.2
+    container_name: couchdb0.financier
+    environment:
+      - COUCHDB_USER=admin
+      - COUCHDB_PASSWORD=adminpw
+    ports:
+      - "7984:5984"
+    networks:
+      - drunix_invoicenet
+
+  # YugabyteDB Distributed SQL Engine (DRUNIX native state DB)
+  yugabyted:
+    image: yugabytedb/yugabyte:2.20.2.0-b53
+    container_name: drunix_yugabyted
+    command: bin/yugabyted start --base_dir=/home/yugabyte/yb_data --daemon=false --ui=true
+    ports:
+      - "7000:7000"   # Master UI
+      - "9000:9000"   # TServer UI
+      - "5433:5433"   # YSQL PostgreSQL port
+      - "9042:9042"   # YCQL Cassandra port
+      - "15433:15433" # yugabyted dashboard UI
+    volumes:
+      - yugabyte_data:/home/yugabyte/yb_data
+    networks:
+      - drunix_invoicenet
