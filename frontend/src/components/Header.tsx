@@ -7,6 +7,7 @@ interface HeaderProps {
   activeTab: 'INVOICES' | 'NETWORK' | 'ANALYTICS';
   blockHeight: number;
   onOpenCreateInvoice: () => void;
+  onOpenDocIntelligence: () => void;
   onOpenDoubleFinancing: () => void;
   onRefresh: () => void;
 }
@@ -16,6 +17,7 @@ export const Header: React.FC<HeaderProps> = ({
   activeTab,
   blockHeight,
   onOpenCreateInvoice,
+  onOpenDocIntelligence,
   onOpenDoubleFinancing,
   onRefresh,
 }) => {
@@ -59,15 +61,26 @@ export const Header: React.FC<HeaderProps> = ({
             <span className="text-slate-600 font-mono text-[11px] font-semibold">{currentPersona.orgMsp}</span>
           </div>
 
-          {/* Create Invoice Action */}
+          {/* AI Smart Upload & Create Invoice Actions */}
           {currentPersona.role === 'SUPPLIER' && (
-            <button
-              onClick={onOpenCreateInvoice}
-              className="px-4 py-2 rounded-lg bg-royal hover:bg-royal-hover text-white font-semibold text-xs flex items-center space-x-1.5 transition-all shadow-sm"
-            >
-              <Plus className="h-4 w-4" />
-              <span>Create Invoice</span>
-            </button>
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={onOpenDocIntelligence}
+                className="px-3.5 py-2 rounded-lg bg-gradient-to-r from-royal to-indigo-600 hover:from-royal-hover hover:to-indigo-700 text-white font-semibold text-xs flex items-center space-x-1.5 transition-all shadow-sm"
+                title="AI Document Intelligence: Upload invoice PDF/Image with Gemini OCR & PO verification"
+              >
+                <Cpu className="h-4 w-4 text-sky-200" />
+                <span>AI Smart Upload</span>
+              </button>
+
+              <button
+                onClick={onOpenCreateInvoice}
+                className="px-3 py-2 rounded-lg bg-white border border-softGray-border hover:bg-softGray text-slate-700 font-semibold text-xs flex items-center space-x-1.5 transition-all shadow-sm"
+              >
+                <Plus className="h-4 w-4" />
+                <span>Manual</span>
+              </button>
+            </div>
           )}
 
           {/* Refresh Button */}

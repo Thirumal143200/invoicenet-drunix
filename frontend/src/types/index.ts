@@ -42,6 +42,86 @@ export interface Invoice {
   blockNumber: number;
   txId: string;
   endorsementHistory: EndorsementRecord[];
+  documentHash?: string;
+  documentFileName?: string;
+  supplierGstin?: string;
+  buyerGstin?: string;
+  poNumber?: string;
+  subtotal?: number;
+  taxAmount?: number;
+  lineItems?: Array<{
+    description: string;
+    quantity: number;
+    unitPrice: number;
+    total: number;
+  }>;
+  aiVerification?: {
+    overallConfidence: number;
+    hasWarnings: boolean;
+    poMatched: boolean;
+    extractedAt: string;
+  };
+}
+
+export interface FieldVerification<T> {
+  value: T | null;
+  confidence: number;
+  status: 'VERIFIED' | 'REVIEW_NEEDED' | 'MISSING';
+  warning?: string;
+  source?: 'DIGITAL_PARSER' | 'GEMINI_AI' | 'OCR_HEURISTIC' | 'USER_CORRECTED';
+}
+
+export interface ExtractedLineItem {
+  description: string;
+  quantity: number;
+  unitPrice: number;
+  total: number;
+  confidence: number;
+}
+
+export interface ExtractedInvoiceData {
+  documentHash: string;
+  documentFileName: string;
+  fileSize: number;
+  mimeType: string;
+  invoiceNumber: FieldVerification<string>;
+  invoiceDate: FieldVerification<string>;
+  dueDate: FieldVerification<string>;
+  supplierName: FieldVerification<string>;
+  supplierGstin: FieldVerification<string>;
+  buyerName: FieldVerification<string>;
+  buyerGstin: FieldVerification<string>;
+  currency: FieldVerification<string>;
+  subtotal: FieldVerification<number>;
+  taxAmount: FieldVerification<number>;
+  totalAmount: FieldVerification<number>;
+  lineItems: ExtractedLineItem[];
+  arithmeticValid: boolean;
+  arithmeticMessage?: string;
+  poComparison?: {
+    poNumber?: string;
+    isMatched: boolean;
+    poAmount?: number;
+    discrepancies: string[];
+  };
+  duplicateWarning?: {
+    isDuplicate: boolean;
+    existingInvoiceId?: string;
+    existingTxId?: string;
+    message?: string;
+  };
+  overallConfidence: number;
+  extractionEngine: 'GEMINI_MULTIMODAL' | 'PDF_NATIVE_STREAM' | 'DETERMINISTIC_HYBRID';
+  extractedAt: string;
+}
+
+export interface PurchaseOrderRecord {
+  poNumber: string;
+  buyerOrg: string;
+  supplierOrg: string;
+  amount: number;
+  currency: string;
+  lineItems: Array<{ description: string; quantity: number; unitPrice: number; total: number }>;
 }
 
 export interface BlockchainBlock {

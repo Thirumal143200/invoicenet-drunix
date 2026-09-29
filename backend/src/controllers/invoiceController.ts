@@ -34,6 +34,15 @@ export class InvoiceController {
         amount,
         dueDate,
         description,
+        documentHash,
+        documentFileName,
+        supplierGstin,
+        buyerGstin,
+        poNumber,
+        subtotal,
+        taxAmount,
+        lineItems,
+        aiVerification,
       } = req.body;
 
       if (!amount || amount <= 0) {
@@ -53,6 +62,15 @@ export class InvoiceController {
         amount: Number(amount),
         dueDate,
         description: description || 'Industrial component supply contract',
+        documentHash,
+        documentFileName,
+        supplierGstin,
+        buyerGstin,
+        poNumber,
+        subtotal: subtotal ? Number(subtotal) : undefined,
+        taxAmount: taxAmount ? Number(taxAmount) : undefined,
+        lineItems,
+        aiVerification,
       });
 
       res.status(201).json({

@@ -45,6 +45,25 @@ export interface Invoice {
   blockNumber: number;
   txId: string;
   endorsementHistory: EndorsementRecord[];
+  documentHash?: string;
+  documentFileName?: string;
+  supplierGstin?: string;
+  buyerGstin?: string;
+  poNumber?: string;
+  subtotal?: number;
+  taxAmount?: number;
+  lineItems?: Array<{
+    description: string;
+    quantity: number;
+    unitPrice: number;
+    total: number;
+  }>;
+  aiVerification?: {
+    overallConfidence: number;
+    hasWarnings: boolean;
+    poMatched: boolean;
+    extractedAt: string;
+  };
 }
 
 export interface BlockchainBlock {
@@ -288,7 +307,40 @@ class DrunixGatewayService {
     amount: number;
     dueDate: string;
     description: string;
+    documentHash?: string;
+    documentFileName?: string;
+    supplierGstin?: string;
+    buyerGstin?: string;
+    poNumber?: string;
+    subtotal?: number;
+    taxAmount?: number;
+    lineItems?: Array<{ description: string; quantity: number; unitPrice: number; total: number }>;
+    aiVerification?: { overallConfidence: number; hasWarnings: boolean; poMatched: boolean; extractedAt: string };
   }): Promise<Invoice> {
+    // Check for duplicate invoiceNumber
+    if (data.invoiceNumber) {
+      const existing = Array.from(this.invoices.values()).find(
+        (inv) => inv.invoiceNumber.trim().toLowerCase() === data.invoiceNumber.trim().toLowerCase()
+      );
+      if (existing) {
+        throw new Error(
+          `DUPLICATE_INVOICE_ERROR: Invoice number '${data.invoiceNumber}' is already registered on DRUNIX ledger under ID ${existing.id} (Block #${existing.blockNumber}).`
+        );
+      }
+    }
+
+    // Check for duplicate documentHash
+    if (data.documentHash) {
+      const existing = Array.from(this.invoices.values()).find(
+        (inv) => inv.documentHash && inv.documentHash === data.documentHash
+      );
+      if (existing) {
+        throw new Error(
+          `DUPLICATE_INVOICE_ERROR: A document with matching cryptographic hash (${data.documentHash.slice(0, 16)}...) was already registered on-chain under invoice ${existing.id}.`
+        );
+      }
+    }
+
     const id = `INV-2026-${String(this.invoices.size + 1).padStart(3, '0')}`;
     const timestamp = new Date().toISOString();
     const txId = `tx_drunix_${crypto.randomBytes(6).toString('hex')}`;
@@ -321,6 +373,15 @@ class DrunixGatewayService {
       updatedAt: timestamp,
       blockNumber: newBlock.blockNumber,
       txId,
+      documentHash: data.documentHash,
+      documentFileName: data.documentFileName,
+      supplierGstin: data.supplierGstin,
+      buyerGstin: data.buyerGstin,
+      poNumber: data.poNumber,
+      subtotal: data.subtotal,
+      taxAmount: data.taxAmount,
+      lineItems: data.lineItems,
+      aiVerification: data.aiVerification,
       endorsementHistory: [
         {
           orgMsp: 'SupplierMSP',

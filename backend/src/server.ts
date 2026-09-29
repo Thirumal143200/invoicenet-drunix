@@ -4,8 +4,13 @@ import dotenv from 'dotenv';
 import invoiceRoutes from './routes/invoiceRoutes';
 import blockchainRoutes from './routes/blockchainRoutes';
 import analyticsRoutes from './routes/analyticsRoutes';
+import documentRoutes from './routes/documentRoutes';
+import { DocumentIntelligenceService } from './services/documentIntelligenceService';
 
 dotenv.config();
+
+// Initialize Google Gemini if API key is present
+DocumentIntelligenceService.initializeGemini();
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -24,6 +29,7 @@ app.get('/api/health', (req, res) => {
     status: 'HEALTHY',
     service: 'InvoiceNet DRUNIX API Gateway',
     version: '1.0.0',
+    geminiEnabled: !!process.env.GEMINI_API_KEY,
     timestamp: new Date().toISOString(),
   });
 });
@@ -32,6 +38,7 @@ app.get('/api/health', (req, res) => {
 app.use('/api/invoices', invoiceRoutes);
 app.use('/api/blockchain', blockchainRoutes);
 app.use('/api/analytics', analyticsRoutes);
+app.use('/api/documents', documentRoutes);
 
 app.listen(PORT, () => {
   console.log(`=================================================`);

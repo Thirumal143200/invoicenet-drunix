@@ -6,6 +6,7 @@ import { InvoiceTable } from './components/InvoiceTable';
 import { BlockchainProofModal } from './components/BlockchainProofModal';
 import { DoubleFinancingDemoModal } from './components/DoubleFinancingDemoModal';
 import { CreateInvoiceModal } from './components/CreateInvoiceModal';
+import { DocumentReviewWorkspace } from './components/DocumentReviewWorkspace';
 import { NetworkExplorerView } from './components/NetworkExplorerView';
 import { Invoice, AnalyticsMetrics, UserPersona } from './types';
 import { Zap, ShieldCheck, Clock, TrendingUp, DollarSign } from 'lucide-react';
@@ -53,6 +54,7 @@ export const App: React.FC = () => {
   const [selectedProofInvoice, setSelectedProofInvoice] = useState<Invoice | null>(null);
   const [isDoubleFinancingModalOpen, setIsDoubleFinancingModalOpen] = useState(false);
   const [isCreateInvoiceModalOpen, setIsCreateInvoiceModalOpen] = useState(false);
+  const [isDocWorkspaceOpen, setIsDocWorkspaceOpen] = useState(false);
 
   // Filter
   const [filterStatus, setFilterStatus] = useState<string>('ALL');
@@ -119,6 +121,7 @@ export const App: React.FC = () => {
           activeTab={activeTab}
           blockHeight={blockHeight}
           onOpenCreateInvoice={() => setIsCreateInvoiceModalOpen(true)}
+          onOpenDocIntelligence={() => setIsDocWorkspaceOpen(true)}
           onOpenDoubleFinancing={() => setIsDoubleFinancingModalOpen(true)}
           onRefresh={fetchData}
         />
@@ -293,6 +296,13 @@ export const App: React.FC = () => {
       <CreateInvoiceModal
         isOpen={isCreateInvoiceModalOpen}
         onClose={() => setIsCreateInvoiceModalOpen(false)}
+        onInvoiceCreated={fetchData}
+        currentPersona={currentPersona}
+      />
+
+      <DocumentReviewWorkspace
+        isOpen={isDocWorkspaceOpen}
+        onClose={() => setIsDocWorkspaceOpen(false)}
         onInvoiceCreated={fetchData}
         currentPersona={currentPersona}
       />

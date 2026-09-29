@@ -1,0 +1,34 @@
+%PDF-1.4
+1 0 obj << /Type /Catalog /Pages 2 0 R >> endobj
+2 0 obj << /Type /Pages /Kids [3 0 R] /Count 1 >> endobj
+3 0 obj << /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >> endobj
+4 0 obj << /Length 380 >> stream
+BT
+/F1 12 Tf
+72 700 Td (TAX INVOICE) Tj
+72 680 Td (Invoice No: TP-2026-9901) Tj
+72 660 Td (Invoice Date: 2026-09-10) Tj
+72 640 Td (Due Date: 2026-11-10) Tj
+72 620 Td (Supplier: TechParts Manufacturing Pvt. Ltd.) Tj
+72 600 Td (GSTIN: 27AABCT3518Q1ZV) Tj
+72 580 Td (Buyer: AutoWorks Industries Ltd.) Tj
+72 560 Td (Buyer GSTIN: 29AABCA9821K1ZW) Tj
+72 540 Td (Subtotal: 400000.00) Tj
+72 520 Td (GST 18%: 72000.00) Tj
+72 500 Td (Total Amount: 472000.00) Tj
+ET
+endstream
+endobj
+5 0 obj << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> endobj
+xref
+0 6
+0000000000 65535 f 
+0000000010 00000 n 
+0000000060 00000 n 
+0000000117 00000 n 
+0000000227 00000 n 
+0000000660 00000 n 
+trailer << /Root 1 0 R /Size 6 >>
+startxref
+735
+%%EOF

@@ -22,3 +22,7 @@ scratch/
 # OS files
 .DS_Store
 Thumbs.db
+
+# Uploaded documents
+backend/uploads/*
+!backend/uploads/.gitkeep
