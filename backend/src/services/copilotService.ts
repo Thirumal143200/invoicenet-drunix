@@ -193,7 +193,7 @@ ${specificInvoiceDetails ? `- Specific Invoice Query Result: ${JSON.stringify(sp
     const prompt = `<untrusted_user_query>\n${message}\n</untrusted_user_query>`;
 
     const response = await this.geminiClient.models.generateContent({
-      model: 'gemini-2.5-flash',
+      model: 'gemini-3.5-flash',
       contents: [
         { role: 'user', parts: [{ text: systemInstruction + '\n\n' + prompt }] },
       ],

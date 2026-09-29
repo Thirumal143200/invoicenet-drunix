@@ -121,8 +121,10 @@ export class DocumentIntelligenceService {
 
   public static initializeGemini() {
     const apiKey = process.env.GEMINI_API_KEY;
-    if (apiKey) {
-      this.geminiClient = new GoogleGenAI({ apiKey });
+    if (apiKey && apiKey.trim() !== '') {
+      this.geminiClient = new GoogleGenAI({ apiKey: apiKey.trim() });
+    } else {
+      this.geminiClient = null;
     }
   }
 
@@ -247,7 +249,7 @@ ${extractedPdfText.slice(0, 4000)}
     contents.push({ text: prompt });
 
     const response = await this.geminiClient.models.generateContent({
-      model: 'gemini-2.5-flash',
+      model: 'gemini-3.5-flash',
       contents,
       config: {
         responseMimeType: 'application/json',

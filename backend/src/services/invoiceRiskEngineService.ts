@@ -567,7 +567,7 @@ Respond with STRICT JSON matching this schema:
 DO NOT invent facts not present in the input.`;
 
         const res = await this.geminiClient.models.generateContent({
-          model: 'gemini-2.5-flash',
+          model: 'gemini-3.5-flash',
           contents: [{ role: 'user', parts: [{ text: prompt }] }],
           config: {
             temperature: 0.1,
