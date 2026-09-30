@@ -13,14 +13,15 @@ import {
   CheckCircle2,
   TrendingUp,
   Cpu,
+  Bot,
 } from 'lucide-react';
 
 interface SidebarProps {
   currentPersona: UserPersona;
   onSelectPersona: (persona: UserPersona) => void;
   personas: UserPersona[];
-  activeTab: 'INVOICES' | 'NETWORK' | 'ANALYTICS' | 'FRAUD_CENTER' | 'CASH_FLOW' | 'RISK_ENGINE';
-  onSelectTab: (tab: 'INVOICES' | 'NETWORK' | 'ANALYTICS' | 'FRAUD_CENTER' | 'CASH_FLOW' | 'RISK_ENGINE') => void;
+  activeTab: 'INVOICES' | 'NETWORK' | 'ANALYTICS' | 'FRAUD_CENTER' | 'CASH_FLOW' | 'RISK_ENGINE' | 'COPILOT';
+  onSelectTab: (tab: 'INVOICES' | 'NETWORK' | 'ANALYTICS' | 'FRAUD_CENTER' | 'CASH_FLOW' | 'RISK_ENGINE' | 'COPILOT') => void;
   blockHeight: number;
   invoiceCount: number;
   onOpenDoubleFinancingModal: () => void;
@@ -167,6 +168,23 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </div>
           <span className="text-[10px] px-1.5 py-0.2 rounded-full font-mono bg-purple-500/30 text-purple-200 border border-purple-400/30 font-bold">
             0-100
+          </span>
+        </button>
+
+        <button
+          onClick={() => onSelectTab('COPILOT')}
+          className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-xs font-semibold transition-all ${
+            activeTab === 'COPILOT'
+              ? 'bg-royal text-white shadow-sm'
+              : 'text-slate-300 hover:bg-navy-light hover:text-white'
+          }`}
+        >
+          <div className="flex items-center space-x-2.5">
+            <Bot className="h-4 w-4 text-cyan-400" />
+            <span>AI Financial Copilot</span>
+          </div>
+          <span className="text-[10px] px-1.5 py-0.2 rounded-full font-mono bg-cyan-500/30 text-cyan-200 border border-cyan-400/30 font-bold">
+            Live
           </span>
         </button>
       </div>

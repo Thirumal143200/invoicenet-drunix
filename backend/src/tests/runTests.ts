@@ -2,6 +2,8 @@ import fs from 'fs';
 import path from 'path';
 import { DocumentIntelligenceService } from '../services/documentIntelligenceService';
 import { drunixGateway } from '../services/drunixGateway';
+import { runComprehensiveRiskEngineTests } from './testRiskEngine';
+import { runCopilotTests } from './testCopilot';
 
 async function runTestSuite() {
   console.log('================================================================');
@@ -302,10 +304,23 @@ startxref
   }
 
   console.log('\n================================================================');
-  console.log(`TEST SUMMARY: ${passed} PASSED, ${failed} FAILED`);
+  console.log(`DOCUMENT INTELLIGENCE SUMMARY: ${passed} PASSED, ${failed} FAILED`);
   console.log('================================================================\n');
 
-  if (failed > 0) process.exit(1);
+  console.log('\n>>> Starting AI Invoice Risk Engine Test Suite...\n');
+  const riskResults = await runComprehensiveRiskEngineTests();
+
+  console.log('\n>>> Starting AI Financial Copilot Test Suite...\n');
+  const copilotResults = await runCopilotTests();
+
+  const totalPassed = passed + riskResults.passed + copilotResults.passed;
+  const totalFailed = failed + riskResults.failed + copilotResults.failed;
+
+  console.log('\n================================================================');
+  console.log(`GRAND TEST SUITE SUMMARY: ${totalPassed} PASSED, ${totalFailed} FAILED`);
+  console.log('================================================================\n');
+
+  if (totalFailed > 0) process.exit(1);
 }
 
 runTestSuite().catch((err) => {

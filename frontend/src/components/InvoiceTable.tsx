@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
-import { Invoice, UserPersona } from '../types';
-import { ShieldCheck, Calendar, Building2, ExternalLink } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Invoice, UserPersona, InvoiceRiskAssessment } from '../types';
+import { ShieldCheck, Calendar, Building2, ExternalLink, Cpu, AlertTriangle } from 'lucide-react';
 
 interface InvoiceTableProps {
   invoices: Invoice[];
@@ -16,6 +16,33 @@ export const InvoiceTable: React.FC<InvoiceTableProps> = ({
   onRefresh,
 }) => {
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [assessmentsMap, setAssessmentsMap] = useState<Record<string, InvoiceRiskAssessment>>({});
+
+  useEffect(() => {
+    fetchAssessments();
+  }, [invoices.length, currentPersona.role]);
+
+  const fetchAssessments = async () => {
+    try {
+      const res = await fetch('/api/risk/assessments', {
+        headers: {
+          'x-user-role': currentPersona.role,
+          'x-user-id': currentPersona.name,
+          'x-user-org': currentPersona.org,
+        },
+      });
+      const data = await res.json();
+      if (data.success && Array.isArray(data.data)) {
+        const map: Record<string, InvoiceRiskAssessment> = {};
+        for (const a of data.data) {
+          map[a.invoiceId] = a;
+        }
+        setAssessmentsMap(map);
+      }
+    } catch (e) {
+      console.warn('Could not fetch assessments for table:', e);
+    }
+  };
 
   const getStatusBadge = (status: Invoice['status']) => {
     switch (status) {
@@ -60,6 +87,48 @@ export const InvoiceTable: React.FC<InvoiceTableProps> = ({
     }
   };
 
+  const getRiskBadge = (assessment?: InvoiceRiskAssessment) => {
+    if (!assessment) {
+      return (
+        <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-mono font-semibold bg-slate-100 text-slate-500 border border-slate-200">
+          Unassessed
+        </span>
+      );
+    }
+
+    const score = assessment.riskScore;
+    if (score >= 80) {
+      return (
+        <span className="inline-flex items-center space-x-1 px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-rose-100 text-rose-800 border border-rose-300">
+          <span>{score}</span>
+          <span className="text-[9px]">CRITICAL</span>
+        </span>
+      );
+    }
+    if (score >= 60) {
+      return (
+        <span className="inline-flex items-center space-x-1 px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-orange-100 text-orange-800 border border-orange-300">
+          <span>{score}</span>
+          <span className="text-[9px]">HIGH</span>
+        </span>
+      );
+    }
+    if (score >= 30) {
+      return (
+        <span className="inline-flex items-center space-x-1 px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-amber-100 text-amber-800 border border-amber-300">
+          <span>{score}</span>
+          <span className="text-[9px]">MEDIUM</span>
+        </span>
+      );
+    }
+    return (
+      <span className="inline-flex items-center space-x-1 px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">
+        <span>{score}</span>
+        <span className="text-[9px]">LOW</span>
+      </span>
+    );
+  };
+
   const handleAccept = async (id: string) => {
     setActionLoading(id);
     try {
@@ -69,6 +138,7 @@ export const InvoiceTable: React.FC<InvoiceTableProps> = ({
         body: JSON.stringify({ buyerId: `${currentPersona.name} (${currentPersona.org})` }),
       });
       onRefresh();
+      fetchAssessments();
     } finally {
       setActionLoading(null);
     }
@@ -86,6 +156,7 @@ export const InvoiceTable: React.FC<InvoiceTableProps> = ({
         }),
       });
       onRefresh();
+      fetchAssessments();
     } finally {
       setActionLoading(null);
     }
@@ -105,6 +176,7 @@ export const InvoiceTable: React.FC<InvoiceTableProps> = ({
         }),
       });
       onRefresh();
+      fetchAssessments();
     } finally {
       setActionLoading(null);
     }
@@ -122,6 +194,7 @@ export const InvoiceTable: React.FC<InvoiceTableProps> = ({
         }),
       });
       onRefresh();
+      fetchAssessments();
     } finally {
       setActionLoading(null);
     }
@@ -137,6 +210,7 @@ export const InvoiceTable: React.FC<InvoiceTableProps> = ({
               <th className="py-3 px-4">Counterparties</th>
               <th className="py-3 px-4">Amount & Term</th>
               <th className="py-3 px-4">Ledger Status</th>
+              <th className="py-3 px-4">AI Risk Score</th>
               <th className="py-3 px-4">Endorsements</th>
               <th className="py-3 px-4 text-right">Actions</th>
             </tr>
@@ -144,6 +218,7 @@ export const InvoiceTable: React.FC<InvoiceTableProps> = ({
           <tbody className="divide-y divide-softGray-border font-sans">
             {invoices.map((inv) => {
               const isLoading = actionLoading === inv.id;
+              const assessment = assessmentsMap[inv.id];
 
               return (
                 <tr key={inv.id} className="hover:bg-slate-50/80 transition-colors">
@@ -188,6 +263,17 @@ export const InvoiceTable: React.FC<InvoiceTableProps> = ({
                     )}
                   </td>
 
+                  {/* AI Risk Score Column */}
+                  <td className="py-3.5 px-4">
+                    <button
+                      onClick={() => onInspectProof(inv)}
+                      className="cursor-pointer hover:opacity-80 transition-opacity"
+                      title="Click to view explainable risk assessment & evidence"
+                    >
+                      {getRiskBadge(assessment)}
+                    </button>
+                  </td>
+
                   {/* Endorsement Chain */}
                   <td className="py-3.5 px-4">
                     <div className="flex items-center space-x-1">
@@ -216,7 +302,7 @@ export const InvoiceTable: React.FC<InvoiceTableProps> = ({
                       <button
                         disabled={isLoading}
                         onClick={() => handleAccept(inv.id)}
-                        className="px-3 py-1.5 rounded-lg bg-emerald hover:bg-emerald-dark text-white font-semibold text-xs transition-all shadow-sm"
+                        className="px-3 py-1.5 rounded-lg bg-emerald hover:bg-emerald-dark text-white font-semibold text-xs transition-all shadow-sm cursor-pointer"
                       >
                         {isLoading ? 'Signing...' : 'Accept on DRUNIX'}
                       </button>
@@ -227,7 +313,7 @@ export const InvoiceTable: React.FC<InvoiceTableProps> = ({
                       <button
                         disabled={isLoading}
                         onClick={() => handleRequestFinancing(inv.id)}
-                        className="px-3 py-1.5 rounded-lg bg-royal hover:bg-royal-hover text-white font-semibold text-xs transition-all shadow-sm"
+                        className="px-3 py-1.5 rounded-lg bg-royal hover:bg-royal-hover text-white font-semibold text-xs transition-all shadow-sm cursor-pointer"
                       >
                         {isLoading ? 'Posting...' : 'Request Financing'}
                       </button>
@@ -239,7 +325,7 @@ export const InvoiceTable: React.FC<InvoiceTableProps> = ({
                         <button
                           disabled={isLoading}
                           onClick={() => handleFinance(inv.id, inv.amount)}
-                          className="px-3.5 py-1.5 rounded-lg bg-royal hover:bg-royal-hover text-white font-bold text-xs transition-all shadow-sm"
+                          className="px-3.5 py-1.5 rounded-lg bg-royal hover:bg-royal-hover text-white font-bold text-xs transition-all shadow-sm cursor-pointer"
                         >
                           {isLoading ? 'Financing...' : 'Finance @ 11% APR'}
                         </button>
@@ -250,7 +336,7 @@ export const InvoiceTable: React.FC<InvoiceTableProps> = ({
                       <button
                         disabled={isLoading}
                         onClick={() => handleSettle(inv.id)}
-                        className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-900 text-white font-semibold text-xs transition-all shadow-sm"
+                        className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-900 text-white font-semibold text-xs transition-all shadow-sm cursor-pointer"
                       >
                         {isLoading ? 'Settling...' : 'Settle Invoice'}
                       </button>
@@ -259,9 +345,9 @@ export const InvoiceTable: React.FC<InvoiceTableProps> = ({
                     {/* Proof Inspector Button */}
                     <button
                       onClick={() => onInspectProof(inv)}
-                      className="px-2.5 py-1.5 rounded-lg bg-white hover:bg-softGray text-royal border border-softGray-border font-mono text-[11px] font-semibold transition-all shadow-sm"
+                      className="px-2.5 py-1.5 rounded-lg bg-white hover:bg-softGray text-royal border border-softGray-border font-mono text-[11px] font-semibold transition-all shadow-sm cursor-pointer"
                     >
-                      Proof
+                      Proof & Risk
                     </button>
                   </td>
                 </tr>

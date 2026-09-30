@@ -164,9 +164,17 @@ export interface UserPersona {
   badgeColor: string;
 }
 
+export type CopilotEvidenceSource =
+  | 'DRUNIX ledger data'
+  | 'InvoiceNet application data'
+  | 'AI-generated explanation'
+  | 'Forecast or estimate';
+
 export interface CopilotEvidenceItem {
-  type: 'INVOICE' | 'BLOCKCHAIN_TX' | 'RISK_ALERT' | 'NETWORK_METRIC';
+  type: 'INVOICE' | 'BLOCKCHAIN_TX' | 'RISK_ALERT' | 'NETWORK_METRIC' | 'PURCHASE_ORDER' | 'LIFECYCLE';
   title: string;
+  source?: CopilotEvidenceSource;
+  sourceTimestamp?: string;
   invoiceId?: string;
   invoiceNumber?: string;
   amount?: number;
@@ -175,6 +183,8 @@ export interface CopilotEvidenceItem {
   txId?: string;
   blockNumber?: number;
   documentHash?: string;
+  riskFindings?: string;
+  poMatchStatus?: string;
   details?: string;
 }
 
@@ -328,10 +338,20 @@ export interface CashFlowForecastResult {
 }
 
 export type RiskLevel = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+export type RiskCategory = RiskLevel;
 
 export interface DetectedRiskFactor {
   id: string;
-  category: 'REFERENCE' | 'AMOUNT' | 'DATE_TERMS' | 'PO_RECONCILIATION' | 'ENDORSEMENT_STATE' | 'CREDIT_MITIGANT';
+  category:
+    | 'REFERENCE'
+    | 'AMOUNT'
+    | 'DATE_TERMS'
+    | 'PO_RECONCILIATION'
+    | 'ENDORSEMENT_STATE'
+    | 'CREDIT_MITIGANT'
+    | 'METADATA'
+    | 'IDENTITY'
+    | 'ARITHMETIC';
   title: string;
   severity: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
   scoreImpact: number;
@@ -340,10 +360,16 @@ export interface DetectedRiskFactor {
 }
 
 export interface GeminiRiskExplanation {
-  executiveSummary: string;
-  keyObservations: string[];
-  underwritingAssessment: string;
-  recommendedAction: string;
+  summary: string;
+  keyConcerns: string[];
+  supportingEvidence: string[];
+  recommendedReviewActions: string[];
+  limitations: string[];
+  // Backward compatibility fields
+  executiveSummary?: string;
+  keyObservations?: string[];
+  underwritingAssessment?: string;
+  recommendedAction?: string;
 }
 
 export interface InvoiceRiskAssessment {
@@ -355,9 +381,12 @@ export interface InvoiceRiskAssessment {
   amount: number;
   currency: string;
   riskScore: number; // 0 to 100
-  riskLevel: RiskLevel;
-  confidenceScore: number;
-  detectedFactors: DetectedRiskFactor[];
+  riskCategory: RiskLevel; // 0-29 Low, 30-59 Medium, 60-79 High, 80-100 Critical
+  riskLevel: RiskLevel; // Alias
+  confidence: number;
+  confidenceScore: number; // Alias
+  individualRiskFactors: DetectedRiskFactor[];
+  detectedFactors: DetectedRiskFactor[]; // Alias
   evidence: {
     drunixProof: {
       blockNumber: number;
@@ -377,10 +406,25 @@ export interface InvoiceRiskAssessment {
       multipleOfMean?: number;
       priorInvoicesCount: number;
     };
+    arithmeticCheck?: {
+      subtotal?: number;
+      taxAmount?: number;
+      totalAmount?: number;
+      isValid?: boolean;
+      discrepancy?: number;
+    };
+    identityCheck?: {
+      supplierGstin?: string;
+      isFormatValid?: boolean;
+      supplierOrgMatch?: boolean;
+    };
   };
   explanation: GeminiRiskExplanation;
+  scoreCalculationExplanation: string;
+  dataLimitations: string[];
   recommendedAction: string;
-  analyzedAt: string;
+  assessmentTimestamp: string;
+  analyzedAt: string; // Alias
   analyzedBy: string;
 }
 

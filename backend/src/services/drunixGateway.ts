@@ -86,11 +86,26 @@ class DrunixGatewayService {
   private invoices: Map<string, Invoice> = new Map();
   private blocks: BlockchainBlock[] = [];
   private currentBlockNumber = 1042;
-  private isConnectedToLivePeer = false;
+  private isConnectedToLivePeer = process.env.DRUNIX_LIVE_GATEWAY === 'true';
+  private mutationListeners: Array<(invoiceId: string, invoice: Invoice) => void> = [];
 
   constructor() {
     this.initializeGenesisBlock();
     this.seedInitialDemoInvoices();
+  }
+
+  public onInvoiceMutation(listener: (invoiceId: string, invoice: Invoice) => void) {
+    this.mutationListeners.push(listener);
+  }
+
+  private notifyMutation(invoiceId: string, invoice: Invoice) {
+    for (const listener of this.mutationListeners) {
+      try {
+        listener(invoiceId, invoice);
+      } catch (err) {
+        console.error('Error in invoice mutation listener:', err);
+      }
+    }
   }
 
   private generateSha256(data: string): string {
@@ -141,6 +156,56 @@ class DrunixGatewayService {
   }
 
   private seedInitialDemoInvoices() {
+    const inv0: Invoice = {
+      id: 'INV-2026-000',
+      invoiceNumber: 'TP-2026-8700',
+      supplierId: 'SP-101',
+      supplierOrg: 'TechParts Manufacturing Pvt. Ltd.',
+      buyerId: 'BY-201',
+      buyerOrg: 'AutoWorks Industries Ltd.',
+      amount: 350000.0,
+      currency: 'INR',
+      issueDate: '2026-07-01T09:00:00Z',
+      dueDate: '2026-08-01T09:00:00Z',
+      settlementDate: '2026-08-03T14:00:00Z',
+      paymentReference: 'RTGS-HDFC-992140',
+      description: 'Precision forged brake discs and rotor assemblies - Batch #78',
+      status: 'SETTLED',
+      createdAt: '2026-07-01T09:00:00Z',
+      updatedAt: '2026-08-03T14:00:00Z',
+      blockNumber: 1041,
+      txId: 'tx_drunix_settled_78a1',
+      endorsementHistory: [
+        {
+          orgMsp: 'SupplierMSP',
+          actorId: 'SP-101 (Priya Sharma)',
+          action: 'CREATE_INVOICE',
+          txId: 'tx_drunix_settled_78a1',
+          timestamp: '2026-07-01T09:00:00Z',
+          signatureHash: 'sha256:drunix-SupplierMSP-settled1',
+          verified: true,
+        },
+        {
+          orgMsp: 'BuyerMSP',
+          actorId: 'BY-201 (Rajesh Kumar)',
+          action: 'ACCEPT_INVOICE',
+          txId: 'tx_drunix_settled_78a2',
+          timestamp: '2026-07-03T10:00:00Z',
+          signatureHash: 'sha256:drunix-BuyerMSP-settled2',
+          verified: true,
+        },
+        {
+          orgMsp: 'BuyerMSP',
+          actorId: 'BY-201 (Rajesh Kumar)',
+          action: 'SETTLE_INVOICE',
+          txId: 'tx_drunix_settled_78a3',
+          timestamp: '2026-08-03T14:00:00Z',
+          signatureHash: 'sha256:drunix-BuyerMSP-settled3',
+          verified: true,
+        },
+      ],
+    };
+
     const inv1: Invoice = {
       id: 'INV-2026-001',
       invoiceNumber: 'TP-2026-8812',
@@ -281,6 +346,7 @@ class DrunixGatewayService {
       ],
     };
 
+    this.invoices.set(inv0.id, inv0);
     this.invoices.set(inv1.id, inv1);
     this.invoices.set(inv2.id, inv2);
     this.invoices.set(inv3.id, inv3);
@@ -396,6 +462,7 @@ class DrunixGatewayService {
     };
 
     this.invoices.set(id, invoice);
+    this.notifyMutation(id, invoice);
     return invoice;
   }
 
@@ -434,6 +501,7 @@ class DrunixGatewayService {
     });
 
     this.invoices.set(id, invoice);
+    this.notifyMutation(id, invoice);
     return invoice;
   }
 
@@ -473,6 +541,7 @@ class DrunixGatewayService {
     });
 
     this.invoices.set(id, invoice);
+    this.notifyMutation(id, invoice);
     return invoice;
   }
 
@@ -512,6 +581,7 @@ class DrunixGatewayService {
     });
 
     this.invoices.set(id, invoice);
+    this.notifyMutation(id, invoice);
     return invoice;
   }
 
@@ -570,6 +640,7 @@ class DrunixGatewayService {
     });
 
     this.invoices.set(id, invoice);
+    this.notifyMutation(id, invoice);
     return invoice;
   }
 
@@ -610,6 +681,7 @@ class DrunixGatewayService {
     });
 
     this.invoices.set(id, invoice);
+    this.notifyMutation(id, invoice);
     return invoice;
   }
 
@@ -620,10 +692,11 @@ class DrunixGatewayService {
   }
 
   public getNetworkStatus() {
+    const isLive = this.isConnectedToLivePeer;
     return {
-      network: 'DRUNIX MSME Testnet (NPCI DLT Framework)',
+      network: isLive ? 'DRUNIX Enterprise Testnet (Live Remote Nodes)' : 'DRUNIX DLT Consensus (Deterministic Ledger Replica)',
       channel: 'invoicenet-channel',
-      orderer: 'orderer.drunix.net:7050 (Raft Consensus)',
+      orderer: isLive ? (process.env.DRUNIX_ORDERER_ENDPOINT || 'orderer.drunix.net:7050') : 'orderer.drunix.local:7050 (Raft Consensus - Local Simulation)',
       stateDatabase: 'YugabyteDB (Distributed SQL & Key-Value)',
       currentBlockHeight: this.currentBlockNumber,
       totalInvoicesOnLedger: this.invoices.size,
@@ -631,24 +704,28 @@ class DrunixGatewayService {
         {
           name: 'SupplierMSP',
           role: 'Supplier Lite Peer & Client',
-          endpoint: 'peer0.supplier.drunix.net:7051',
-          status: 'ONLINE',
+          endpoint: isLive ? (process.env.DRUNIX_SUPPLIER_PEER || 'peer0.supplier.drunix.net:7051') : 'peer0.supplier.drunix.local:7051',
+          status: isLive ? 'ONLINE_LIVE' : 'DEMO_STANDALONE',
         },
         {
           name: 'BuyerMSP',
           role: 'Buyer Lite Peer & Endorser',
-          endpoint: 'peer0.buyer.drunix.net:8051',
-          status: 'ONLINE',
+          endpoint: isLive ? (process.env.DRUNIX_BUYER_PEER || 'peer0.buyer.drunix.net:8051') : 'peer0.buyer.drunix.local:8051',
+          status: isLive ? 'ONLINE_LIVE' : 'DEMO_STANDALONE',
         },
         {
           name: 'FinancierMSP',
           role: 'Financier Lite Peer & Committer',
-          endpoint: 'peer0.financier.drunix.net:9051',
-          status: 'ONLINE',
+          endpoint: isLive ? (process.env.DRUNIX_FINANCIER_PEER || 'peer0.financier.drunix.net:9051') : 'peer0.financier.drunix.local:9051',
+          status: isLive ? 'ONLINE_LIVE' : 'DEMO_STANDALONE',
         },
       ],
       endorsementPolicy: "AND('SupplierMSP.peer', 'BuyerMSP.peer') for financing acceptance",
-      liveConnection: this.isConnectedToLivePeer,
+      liveConnection: isLive,
+      connectivityMode: isLive ? 'LIVE_DLT_PEER_FABRIC' : 'STANDALONE_DETERMINISTIC_REPLICA',
+      notice: isLive
+        ? 'Connected to live external DRUNIX peer network via gRPC.'
+        : 'Running in Standalone Deterministic Ledger Fallback Mode. Ledger blocks and transaction hashes are cryptographically tracked in memory. To connect to an external live DRUNIX peer node, set DRUNIX_LIVE_GATEWAY=true.',
     };
   }
 

@@ -160,7 +160,20 @@ export const CopilotChatDrawer: React.FC<CopilotChatDrawerProps> = ({
     }
   };
 
-  const clearChat = () => {
+  const clearChat = async () => {
+    try {
+      await fetch('/api/copilot/history', {
+        method: 'DELETE',
+        headers: {
+          'x-user-role': currentPersona.role,
+          'x-user-id': currentPersona.name,
+          'x-user-org': currentPersona.org,
+          'x-user-msp': currentPersona.orgMsp,
+        },
+      });
+    } catch (e) {
+      console.warn('Failed to clear backend history:', e);
+    }
     setMessages([
       {
         id: `welcome-${Date.now()}`,

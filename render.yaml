@@ -1,0 +1,26 @@
+services:
+  - type: web
+    name: invoicenet-backend
+    runtime: node
+    plan: free
+    region: oregon
+    rootDir: backend
+    buildCommand: npm install --include=dev && npm run build
+    startCommand: npm start
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: CORS_ORIGIN
+        value: "*"
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: DRUNIX_NETWORK_NAME
+        value: "DRUNIX MSME Testnet"
+      - key: DRUNIX_CHANNEL
+        value: "invoicenet-channel"
+      - key: DRUNIX_LIVE_GATEWAY
+        value: "false"

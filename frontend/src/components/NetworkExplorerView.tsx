@@ -80,25 +80,49 @@ export const NetworkExplorerView: React.FC = () => {
             <h3 className="text-sm font-bold text-navy uppercase tracking-wider flex items-center space-x-2">
               <span>DRUNIX Federated Peer Nodes</span>
             </h3>
-            <span className="text-[11px] font-mono px-2 py-0.5 rounded-full bg-emerald-50 text-emerald font-semibold border border-emerald-200">
-              3 Organizations Connected
+            <span
+              className={`text-[11px] font-mono px-2.5 py-0.5 rounded-full font-semibold border ${
+                networkStatus.liveConnection
+                  ? 'bg-emerald-50 text-emerald-700 border-emerald-300'
+                  : 'bg-amber-50 text-amber-700 border-amber-300'
+              }`}
+            >
+              {networkStatus.liveConnection ? '● Live DLT Fabric' : '● Deterministic Replica (Demo Mode)'}
             </span>
           </div>
 
+          {networkStatus.notice && (
+            <div className="mb-4 p-3 rounded-lg bg-slate-50 border border-slate-200 text-xs text-slate-600 flex items-start space-x-2 font-sans">
+              <div className="mt-0.5 font-bold text-royal">ℹ</div>
+              <div>{networkStatus.notice}</div>
+            </div>
+          )}
+
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-            {networkStatus.connectedOrganizations.map((org: any, idx: number) => (
-              <div key={idx} className="p-4 rounded-lg soft-panel space-y-1.5">
-                <div className="flex items-center justify-between">
-                  <span className="font-bold text-xs text-navy font-mono">{org.name}</span>
-                  <span className="flex items-center space-x-1 text-[11px] text-emerald font-bold">
-                    <span className="h-1.5 w-1.5 rounded-full bg-emerald"></span>
-                    <span>{org.status}</span>
-                  </span>
+            {networkStatus.connectedOrganizations.map((org: any, idx: number) => {
+              const isLive = org.status === 'ONLINE_LIVE' || org.status === 'ONLINE';
+              return (
+                <div key={idx} className="p-4 rounded-lg soft-panel space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-xs text-navy font-mono">{org.name}</span>
+                    <span
+                      className={`flex items-center space-x-1 text-[11px] font-bold ${
+                        isLive ? 'text-emerald-600' : 'text-amber-600'
+                      }`}
+                    >
+                      <span
+                        className={`h-1.5 w-1.5 rounded-full ${
+                          isLive ? 'bg-emerald-600' : 'bg-amber-600'
+                        }`}
+                      ></span>
+                      <span>{org.status}</span>
+                    </span>
+                  </div>
+                  <div className="text-xs text-slate-600">{org.role}</div>
+                  <div className="text-[11px] font-mono text-slate-400">{org.endpoint}</div>
                 </div>
-                <div className="text-xs text-slate-600">{org.role}</div>
-                <div className="text-[11px] font-mono text-slate-400">{org.endpoint}</div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}

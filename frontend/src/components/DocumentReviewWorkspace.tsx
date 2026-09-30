@@ -3,6 +3,7 @@ import {
   ExtractedInvoiceData,
   PurchaseOrderRecord,
   UserPersona,
+  InvoiceRiskAssessment,
 } from '../types';
 import {
   UploadCloud,
@@ -20,6 +21,9 @@ import {
   Building2,
   Calendar,
   Layers,
+  Cpu,
+  AlertOctagon,
+  RefreshCw,
 } from 'lucide-react';
 
 interface DocumentReviewWorkspaceProps {
@@ -39,9 +43,12 @@ export const DocumentReviewWorkspace: React.FC<DocumentReviewWorkspaceProps> = (
   const [isUploading, setIsUploading] = useState(false);
   const [extraction, setExtraction] = useState<ExtractedInvoiceData | null>(null);
   const [selectedPo, setSelectedPo] = useState<string>('PO-2026-AUTOWORKS-092');
-  const [activeTab, setActiveTab] = useState<'FIELDS' | 'LINE_ITEMS' | 'PO_MATCH'>('FIELDS');
+  const [activeTab, setActiveTab] = useState<'FIELDS' | 'LINE_ITEMS' | 'PO_MATCH' | 'RISK_ASSESSMENT'>('FIELDS');
   const [isSubmittingToLedger, setIsSubmittingToLedger] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [docAssessment, setDocAssessment] = useState<InvoiceRiskAssessment | null>(null);
+  const [isAssessingRisk, setIsAssessingRisk] = useState<boolean>(false);
+  const [riskAssessmentError, setRiskAssessmentError] = useState<string | null>(null);
 
   // Editable fields state
   const [editedFields, setEditedFields] = useState<{
@@ -114,10 +121,63 @@ export const DocumentReviewWorkspace: React.FC<DocumentReviewWorkspaceProps> = (
         taxAmount: resData.taxAmount.value ? String(resData.taxAmount.value) : '',
         description: resData.lineItems[0]?.description || 'Automotive precision transmission components',
       });
+      setDocAssessment(null);
     } catch (err: any) {
       setSubmitError(err.message);
     } finally {
       setIsUploading(false);
+    }
+  };
+
+  const updateField = (field: string, value: string) => {
+    setEditedFields((prev) => ({ ...prev, [field]: value }));
+    if (docAssessment) {
+      setDocAssessment(null);
+    }
+  };
+
+  const handleAssessDocumentRisk = async () => {
+    if (!extraction) return;
+    setIsAssessingRisk(true);
+    setRiskAssessmentError(null);
+
+    try {
+      const response = await fetch('/api/risk/assess-document', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-user-role': currentPersona.role,
+          'x-user-id': currentPersona.name,
+          'x-user-org': currentPersona.org,
+        },
+        body: JSON.stringify({
+          invoiceNumber: editedFields.invoiceNumber,
+          amount: parseFloat(editedFields.amount) || 0,
+          subtotal: editedFields.subtotal ? parseFloat(editedFields.subtotal) : undefined,
+          taxAmount: editedFields.taxAmount ? parseFloat(editedFields.taxAmount) : undefined,
+          supplierOrg: editedFields.supplierName,
+          buyerOrg: editedFields.buyerName,
+          issueDate: editedFields.invoiceDate,
+          dueDate: editedFields.dueDate,
+          poNumber: selectedPo,
+          documentHash: extraction.documentHash,
+          supplierGstin: editedFields.supplierGstin,
+          buyerGstin: editedFields.buyerGstin,
+          lineItems: extraction.lineItems,
+        }),
+      });
+
+      const resData = await response.json();
+      if (!response.ok || !resData.success) {
+        throw new Error(resData.error || 'Failed to complete document risk assessment');
+      }
+
+      setDocAssessment(resData.data);
+      setActiveTab('RISK_ASSESSMENT');
+    } catch (err: any) {
+      setRiskAssessmentError(err.message || 'Error communicating with Risk Engine');
+    } finally {
+      setIsAssessingRisk(false);
     }
   };
 
@@ -417,6 +477,33 @@ export const DocumentReviewWorkspace: React.FC<DocumentReviewWorkspaceProps> = (
                       />
                     )}
                   </button>
+                  <button
+                    onClick={() => {
+                      setActiveTab('RISK_ASSESSMENT');
+                      if (!docAssessment) handleAssessDocumentRisk();
+                    }}
+                    className={`pb-2 px-1 border-b-2 transition-all flex items-center space-x-1.5 ${
+                      activeTab === 'RISK_ASSESSMENT' ? 'border-royal text-royal' : 'border-transparent text-slate-500'
+                    }`}
+                  >
+                    <Cpu className="h-3.5 w-3.5" />
+                    <span>Risk Assessment</span>
+                    {docAssessment && (
+                      <span
+                        className={`px-1.5 py-0.2 rounded text-[10px] font-bold ${
+                          docAssessment.riskScore >= 80
+                            ? 'bg-rose-100 text-rose-800'
+                            : docAssessment.riskScore >= 60
+                            ? 'bg-orange-100 text-orange-800'
+                            : docAssessment.riskScore >= 30
+                            ? 'bg-amber-100 text-amber-800'
+                            : 'bg-emerald-100 text-emerald-800'
+                        }`}
+                      >
+                        {docAssessment.riskScore}/100
+                      </span>
+                    )}
+                  </button>
                 </div>
 
                 {/* Sub-tab 1: FIELDS FORM */}
@@ -626,31 +713,180 @@ export const DocumentReviewWorkspace: React.FC<DocumentReviewWorkspaceProps> = (
                   </div>
                 )}
 
+                {/* Sub-tab 4: PRE-COMMIT RISK ASSESSMENT */}
+                {activeTab === 'RISK_ASSESSMENT' && (
+                  <div className="bg-white p-4 rounded-xl border border-softGray-border space-y-4">
+                    {isAssessingRisk ? (
+                      <div className="py-8 text-center text-slate-500">
+                        <Cpu className="h-6 w-6 text-royal animate-spin mx-auto mb-2" />
+                        <p className="text-xs font-semibold">Running multi-party deterministic risk audit...</p>
+                      </div>
+                    ) : docAssessment ? (
+                      <>
+                        <div
+                          className={`p-3.5 rounded-xl border flex items-center justify-between ${
+                            docAssessment.riskScore >= 80
+                              ? 'bg-rose-50 border-rose-300'
+                              : docAssessment.riskScore >= 60
+                              ? 'bg-orange-50 border-orange-300'
+                              : docAssessment.riskScore >= 30
+                              ? 'bg-amber-50 border-amber-300'
+                              : 'bg-emerald-50 border-emerald-300'
+                          }`}
+                        >
+                          <div className="flex items-center space-x-3">
+                            <div className="w-12 h-12 rounded-full border-4 flex flex-col items-center justify-center bg-white border-current text-center font-bold">
+                              <span
+                                className={`text-base font-mono ${
+                                  docAssessment.riskScore >= 80
+                                    ? 'text-rose-600'
+                                    : docAssessment.riskScore >= 60
+                                    ? 'text-orange-600'
+                                    : docAssessment.riskScore >= 30
+                                    ? 'text-amber-600'
+                                    : 'text-emerald-600'
+                                }`}
+                              >
+                                {docAssessment.riskScore}
+                              </span>
+                            </div>
+                            <div>
+                              <div className="flex items-center space-x-2">
+                                <span
+                                  className={`px-2 py-0.5 rounded text-xs font-extrabold text-white ${
+                                    docAssessment.riskScore >= 80
+                                      ? 'bg-rose-600'
+                                      : docAssessment.riskScore >= 60
+                                      ? 'bg-orange-500'
+                                      : docAssessment.riskScore >= 30
+                                      ? 'bg-amber-500'
+                                      : 'bg-emerald-600'
+                                  }`}
+                                >
+                                  {docAssessment.riskCategory || docAssessment.riskLevel} RISK
+                                </span>
+                                <span className="text-[11px] text-slate-500 font-mono">
+                                  Confidence: {Math.round((docAssessment.confidence || 0.95) * 100)}%
+                                </span>
+                              </div>
+                              <p className="text-xs font-medium text-slate-700 mt-1">
+                                {docAssessment.recommendedAction}
+                              </p>
+                            </div>
+                          </div>
+
+                          <button
+                            onClick={handleAssessDocumentRisk}
+                            className="px-2.5 py-1.5 bg-white border border-slate-300 hover:bg-slate-50 rounded text-xs font-bold text-navy flex items-center space-x-1 cursor-pointer"
+                          >
+                            <RefreshCw className="h-3 w-3" />
+                            <span>Re-Evaluate</span>
+                          </button>
+                        </div>
+
+                        {/* AI Summary */}
+                        <div className="p-3 bg-slate-50 rounded-lg border border-slate-200 text-xs">
+                          <div className="text-[11px] font-bold text-navy mb-1 flex items-center space-x-1">
+                            <Sparkles className="h-3.5 w-3.5 text-royal" />
+                            <span>Gemini AI Underwriting Analysis</span>
+                          </div>
+                          <p className="text-slate-700 leading-relaxed">
+                            {docAssessment.explanation.summary || docAssessment.explanation.executiveSummary}
+                          </p>
+                        </div>
+
+                        {/* Detected Risk Factors */}
+                        <div>
+                          <div className="text-xs font-bold text-navy mb-1.5">
+                            Identified Risk Factors ({(docAssessment.individualRiskFactors || docAssessment.detectedFactors || []).length})
+                          </div>
+                          {(docAssessment.individualRiskFactors || docAssessment.detectedFactors || []).length === 0 ? (
+                            <p className="text-xs text-emerald-600 bg-emerald-50 p-2.5 rounded border border-emerald-200">
+                              ✓ No risk factors detected. Commercial parameters conform to baseline standards.
+                            </p>
+                          ) : (
+                            <div className="space-y-1.5">
+                              {(docAssessment.individualRiskFactors || docAssessment.detectedFactors || []).map((f) => (
+                                <div
+                                  key={f.id}
+                                  className="p-2 rounded bg-slate-50 border border-slate-200 text-xs flex items-center justify-between"
+                                >
+                                  <div>
+                                    <span className="font-bold text-navy">{f.title}: </span>
+                                    <span className="text-slate-600">{f.description}</span>
+                                  </div>
+                                  <span className="font-mono font-bold text-rose-600 text-xs shrink-0 ml-2">
+                                    +{f.scoreImpact} pts
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Pre-Commit Warning */}
+                        {docAssessment.riskScore >= 60 && (
+                          <div className="p-3 bg-amber-50 border border-amber-300 rounded-lg text-xs text-amber-900 flex items-start space-x-2">
+                            <AlertOctagon className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
+                            <span>
+                              <strong>Pre-Commit Risk Warning:</strong> Elevated risk score detected. Review PO linkage, duplicate reference, or arithmetic discrepancy before broadcasting transaction to the DRUNIX consensus network.
+                            </span>
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      <div className="py-6 text-center">
+                        <Cpu className="h-8 w-8 text-slate-300 mx-auto mb-2" />
+                        <p className="text-xs text-slate-500 mb-3">
+                          Evaluate extracted document parameters against DRUNIX ledger rules before committing.
+                        </p>
+                        <button
+                          onClick={handleAssessDocumentRisk}
+                          className="px-4 py-2 bg-royal text-white text-xs font-bold rounded-lg hover:bg-royal-hover transition-colors cursor-pointer"
+                        >
+                          Run Pre-Commit Risk Assessment
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 {/* Error Banner */}
-                {submitError && (
+                {(submitError || riskAssessmentError) && (
                   <div className="p-3 rounded-lg bg-rose-50 border border-rose-200 text-xs text-rose-700">
-                    {submitError}
+                    {submitError || riskAssessmentError}
                   </div>
                 )}
 
                 {/* Commitment Action Bar */}
-                <div className="p-4 rounded-xl bg-white border border-softGray-border flex items-center justify-between">
+                <div className="p-4 rounded-xl bg-white border border-softGray-border flex items-center justify-between gap-3 flex-wrap">
                   <div className="text-xs text-slate-500">
                     Ready to sign with <strong className="text-navy">{currentPersona.orgMsp}</strong>
                   </div>
 
-                  <button
-                    onClick={handleCommitToDrunix}
-                    disabled={isSubmittingToLedger || extraction.duplicateWarning?.isDuplicate}
-                    className="px-5 py-2.5 rounded-lg bg-royal hover:bg-royal-hover text-white font-bold text-xs flex items-center space-x-2 transition-all shadow-sm disabled:opacity-50"
-                  >
-                    <Layers className="h-4 w-4" />
-                    <span>
-                      {isSubmittingToLedger
-                        ? 'Broadcasting to DRUNIX Peer...'
-                        : 'Commit Verified Invoice to DRUNIX'}
-                    </span>
-                  </button>
+                  <div className="flex items-center space-x-2.5">
+                    <button
+                      onClick={handleAssessDocumentRisk}
+                      disabled={isAssessingRisk}
+                      className="px-4 py-2 rounded-lg border border-royal text-royal hover:bg-royal/5 font-bold text-xs flex items-center space-x-1.5 transition-all cursor-pointer disabled:opacity-50"
+                    >
+                      <Cpu className={`h-3.5 w-3.5 ${isAssessingRisk ? 'animate-spin' : ''}`} />
+                      <span>{isAssessingRisk ? 'Auditing Risk...' : 'Assess Risk Score'}</span>
+                    </button>
+
+                    <button
+                      onClick={handleCommitToDrunix}
+                      disabled={isSubmittingToLedger || extraction.duplicateWarning?.isDuplicate}
+                      className="px-5 py-2.5 rounded-lg bg-royal hover:bg-royal-hover text-white font-bold text-xs flex items-center space-x-2 transition-all shadow-sm disabled:opacity-50 cursor-pointer"
+                    >
+                      <Layers className="h-4 w-4" />
+                      <span>
+                        {isSubmittingToLedger
+                          ? 'Broadcasting to DRUNIX Peer...'
+                          : 'Commit Verified Invoice to DRUNIX'}
+                      </span>
+                    </button>
+                  </div>
                 </div>
               </div>
             )}

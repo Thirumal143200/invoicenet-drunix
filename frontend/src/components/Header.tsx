@@ -4,7 +4,7 @@ import { Plus, RefreshCw, ShieldAlert, Cpu, Sparkles, Bot } from 'lucide-react';
 
 interface HeaderProps {
   currentPersona: UserPersona;
-  activeTab: 'INVOICES' | 'NETWORK' | 'ANALYTICS' | 'FRAUD_CENTER' | 'CASH_FLOW' | 'RISK_ENGINE';
+  activeTab: 'INVOICES' | 'NETWORK' | 'ANALYTICS' | 'FRAUD_CENTER' | 'CASH_FLOW' | 'RISK_ENGINE' | 'COPILOT';
   blockHeight: number;
   onOpenCreateInvoice: () => void;
   onOpenDocIntelligence: () => void;
@@ -37,6 +37,8 @@ export const Header: React.FC<HeaderProps> = ({
         return 'Cash-Flow Forecasting & Liquidity Runway';
       case 'RISK_ENGINE':
         return 'AI-Powered Invoice Risk Engine';
+      case 'COPILOT':
+        return 'AI Financial Copilot Workspace';
     }
   };
 
@@ -54,6 +56,8 @@ export const Header: React.FC<HeaderProps> = ({
         return 'Predictive cash flow modeling, confidence intervals, scenario simulation & DRUNIX factoring acceleration';
       case 'RISK_ENGINE':
         return 'Explainable 0-100 risk scoring index, PO reconciliation, and Google Gemini 2.5 Flash underwriting synthesis';
+      case 'COPILOT':
+        return 'Natural-language queries grounded on DRUNIX distributed ledger records & AI risk engine';
     }
   };
 

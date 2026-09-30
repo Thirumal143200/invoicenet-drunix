@@ -12,6 +12,7 @@ import { NetworkExplorerView } from './components/NetworkExplorerView';
 import { FraudCenterView } from './components/FraudCenterView';
 import { CashFlowForecastingView } from './components/CashFlowForecastingView';
 import { InvoiceRiskAnalysisView } from './components/InvoiceRiskAnalysisView';
+import { CopilotWorkspaceView } from './components/CopilotWorkspaceView';
 import { Invoice, AnalyticsMetrics, UserPersona } from './types';
 import { Zap, ShieldCheck, Clock, TrendingUp, DollarSign, Bot, Sparkles } from 'lucide-react';
 
@@ -48,7 +49,7 @@ const PERSONAS: UserPersona[] = [
 
 export const App: React.FC = () => {
   const [currentPersona, setCurrentPersona] = useState<UserPersona>(PERSONAS[0]);
-  const [activeTab, setActiveTab] = useState<'INVOICES' | 'NETWORK' | 'ANALYTICS' | 'FRAUD_CENTER' | 'CASH_FLOW' | 'RISK_ENGINE'>('INVOICES');
+  const [activeTab, setActiveTab] = useState<'INVOICES' | 'NETWORK' | 'ANALYTICS' | 'FRAUD_CENTER' | 'CASH_FLOW' | 'RISK_ENGINE' | 'COPILOT'>('INVOICES');
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [metrics, setMetrics] = useState<AnalyticsMetrics | null>(null);
   const [blockHeight, setBlockHeight] = useState<number>(1045);
@@ -317,6 +318,24 @@ export const App: React.FC = () => {
               currentPersona={currentPersona}
               invoices={invoices}
               onRefreshData={fetchData}
+            />
+          )}
+
+          {/* TAB 7: AI FINANCIAL COPILOT WORKSPACE */}
+          {activeTab === 'COPILOT' && (
+            <CopilotWorkspaceView
+              currentPersona={currentPersona}
+              invoices={invoices}
+              blockHeight={blockHeight}
+              onInspectInvoiceProof={(invId) => {
+                const found = invoices.find(
+                  (i) => i.id.toLowerCase() === invId.toLowerCase() || i.invoiceNumber.toLowerCase() === invId.toLowerCase()
+                );
+                if (found) setSelectedProofInvoice(found);
+              }}
+              onOpenRiskEngine={() => {
+                setActiveTab('RISK_ENGINE');
+              }}
             />
           )}
         </main>

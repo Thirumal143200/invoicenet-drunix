@@ -23,6 +23,10 @@ import {
   HelpCircle,
   FileText,
   Lock,
+  ListFilter,
+  CheckCircle,
+  Clock,
+  FileCheck,
 } from 'lucide-react';
 
 interface InvoiceRiskAnalysisViewProps {
@@ -44,6 +48,10 @@ export const InvoiceRiskAnalysisView: React.FC<InvoiceRiskAnalysisViewProps> = (
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [showMethodologyModal, setShowMethodologyModal] = useState<boolean>(false);
+
+  // Filters for History Table
+  const [filterCategory, setFilterCategory] = useState<string>('ALL');
+  const [filterInvoiceStatus, setFilterInvoiceStatus] = useState<string>('ALL');
 
   // Filter invoices authorized for current persona
   const authorizedInvoices = invoices.filter((inv) => {
@@ -110,7 +118,7 @@ export const InvoiceRiskAnalysisView: React.FC<InvoiceRiskAnalysisViewProps> = (
     setSuccessMessage(null);
 
     try {
-      const res = await fetch(`/api/risk/analyze/${idToAnalyze}`, {
+      const res = await fetch(`/api/risk/assess/${idToAnalyze}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -123,7 +131,7 @@ export const InvoiceRiskAnalysisView: React.FC<InvoiceRiskAnalysisViewProps> = (
       const json = await res.json();
       if (json.success && json.data) {
         setCurrentAssessment(json.data);
-        setSuccessMessage(`Risk analysis completed successfully for ${json.data.invoiceNumber}`);
+        setSuccessMessage(`Explainable risk assessment generated for ${json.data.invoiceNumber}`);
         // Refresh history
         fetchAssessments();
       } else {
@@ -137,7 +145,7 @@ export const InvoiceRiskAnalysisView: React.FC<InvoiceRiskAnalysisViewProps> = (
   };
 
   const getScoreTheme = (score: number) => {
-    if (score >= 75) {
+    if (score >= 80) {
       return {
         text: 'text-rose-600',
         bg: 'bg-rose-50',
@@ -146,9 +154,10 @@ export const InvoiceRiskAnalysisView: React.FC<InvoiceRiskAnalysisViewProps> = (
         ring: 'stroke-rose-600',
         label: 'CRITICAL RISK',
         sub: 'Hold Financing • Escalate to Consortium Auditor',
+        range: '80 - 100',
       };
     }
-    if (score >= 50) {
+    if (score >= 60) {
       return {
         text: 'text-orange-600',
         bg: 'bg-orange-50',
@@ -156,10 +165,11 @@ export const InvoiceRiskAnalysisView: React.FC<InvoiceRiskAnalysisViewProps> = (
         pill: 'bg-orange-500 text-white',
         ring: 'stroke-orange-500',
         label: 'HIGH RISK',
-        sub: 'Enhanced Diligence Required • Reconcile PO',
+        sub: 'Enhanced Diligence Required • Reconcile PO & Challan',
+        range: '60 - 79',
       };
     }
-    if (score >= 25) {
+    if (score >= 30) {
       return {
         text: 'text-amber-600',
         bg: 'bg-amber-50',
@@ -168,6 +178,7 @@ export const InvoiceRiskAnalysisView: React.FC<InvoiceRiskAnalysisViewProps> = (
         ring: 'stroke-amber-500',
         label: 'MEDIUM RISK',
         sub: 'Moderate Discrepancy • Standard Verification',
+        range: '30 - 59',
       };
     }
     return {
@@ -178,6 +189,7 @@ export const InvoiceRiskAnalysisView: React.FC<InvoiceRiskAnalysisViewProps> = (
       ring: 'stroke-emerald-600',
       label: 'LOW RISK',
       sub: 'Prime Commercial Grade • Discounting Approved',
+      range: '0 - 29',
     };
   };
 
@@ -198,12 +210,25 @@ export const InvoiceRiskAnalysisView: React.FC<InvoiceRiskAnalysisViewProps> = (
 
   // Metrics summary
   const totalAnalyzed = history.length;
-  const lowRiskCount = history.filter((h) => h.riskScore < 25).length;
-  const mediumRiskCount = history.filter((h) => h.riskScore >= 25 && h.riskScore < 50).length;
-  const highCriticalCount = history.filter((h) => h.riskScore >= 50).length;
+  const lowRiskCount = history.filter((h) => h.riskScore < 30).length;
+  const mediumRiskCount = history.filter((h) => h.riskScore >= 30 && h.riskScore < 60).length;
+  const highRiskCount = history.filter((h) => h.riskScore >= 60 && h.riskScore < 80).length;
+  const criticalRiskCount = history.filter((h) => h.riskScore >= 80).length;
 
   const currentTheme = currentAssessment ? getScoreTheme(currentAssessment.riskScore) : getScoreTheme(0);
   const selectedInvoice = authorizedInvoices.find((i) => i.id === selectedInvoiceId);
+
+  // Filtered History
+  const filteredHistory = history.filter((item) => {
+    if (filterCategory !== 'ALL' && item.riskCategory !== filterCategory && item.riskLevel !== filterCategory) {
+      return false;
+    }
+    if (filterInvoiceStatus !== 'ALL') {
+      const invMatch = invoices.find((i) => i.id === item.invoiceId);
+      if (!invMatch || invMatch.status !== filterInvoiceStatus) return false;
+    }
+    return true;
+  });
 
   return (
     <div className="space-y-6">
@@ -216,13 +241,13 @@ export const InvoiceRiskAnalysisView: React.FC<InvoiceRiskAnalysisViewProps> = (
             </div>
             <div>
               <h2 className="text-xl font-bold text-navy flex items-center gap-2">
-                AI-Powered Invoice Risk Engine
+                Explainable AI Invoice Risk Engine
                 <span className="text-[11px] font-mono px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-bold border border-emerald-200">
                   DRUNIX Verified
                 </span>
               </h2>
               <p className="text-xs text-slate-500">
-                Deterministic multi-party rule validation & Google Gemini 2.5 Flash underwriting synthesis
+                Deterministic mathematical scoring (0-100) & Google Gemini structured underwriting synthesis
               </p>
             </div>
           </div>
@@ -231,7 +256,7 @@ export const InvoiceRiskAnalysisView: React.FC<InvoiceRiskAnalysisViewProps> = (
         <div className="flex items-center space-x-3 w-full lg:w-auto justify-end">
           <button
             onClick={() => setShowMethodologyModal(true)}
-            className="px-3.5 py-2 text-xs font-semibold text-royal bg-royal/5 border border-royal/20 rounded-lg hover:bg-royal/10 transition-colors flex items-center space-x-1.5"
+            className="px-3.5 py-2 text-xs font-semibold text-royal bg-royal/5 border border-royal/20 rounded-lg hover:bg-royal/10 transition-colors flex items-center space-x-1.5 cursor-pointer"
           >
             <HelpCircle className="h-4 w-4" />
             <span>Explainable Scoring Model</span>
@@ -242,7 +267,7 @@ export const InvoiceRiskAnalysisView: React.FC<InvoiceRiskAnalysisViewProps> = (
               if (onRefreshData) onRefreshData();
             }}
             disabled={isLoadingHistory}
-            className="px-3.5 py-2 text-xs font-semibold text-slate-600 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors flex items-center space-x-1.5"
+            className="px-3.5 py-2 text-xs font-semibold text-slate-600 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors flex items-center space-x-1.5 cursor-pointer"
           >
             <RefreshCw className={`h-4 w-4 ${isLoadingHistory ? 'animate-spin' : ''}`} />
             <span>Refresh</span>
@@ -265,38 +290,38 @@ export const InvoiceRiskAnalysisView: React.FC<InvoiceRiskAnalysisViewProps> = (
       {/* KPI Stats Grid */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         <div className="bg-white p-4 rounded-xl border border-softGray-border shadow-sm">
-          <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Total Assessed</div>
-          <div className="text-2xl font-bold text-navy mt-1">{totalAnalyzed}</div>
-          <div className="text-[11px] text-slate-500 mt-1 flex items-center gap-1">
-            <FileText className="h-3 w-3 text-slate-400" />
-            <span>On-chain invoices</span>
-          </div>
-        </div>
-
-        <div className="bg-white p-4 rounded-xl border border-softGray-border shadow-sm">
-          <div className="text-[11px] font-bold text-emerald-600 uppercase tracking-wider">Prime (Low Risk)</div>
+          <div className="text-[11px] font-bold text-emerald-600 uppercase tracking-wider">Low Risk (0 - 29)</div>
           <div className="text-2xl font-bold text-emerald-600 mt-1">{lowRiskCount}</div>
           <div className="text-[11px] text-emerald-700 mt-1 flex items-center gap-1">
             <CheckCircle2 className="h-3 w-3 text-emerald-600" />
-            <span>Score: 0 - 24</span>
+            <span>Prime Trade Receivables</span>
           </div>
         </div>
 
         <div className="bg-white p-4 rounded-xl border border-softGray-border shadow-sm">
-          <div className="text-[11px] font-bold text-amber-600 uppercase tracking-wider">Moderate Caution</div>
+          <div className="text-[11px] font-bold text-amber-600 uppercase tracking-wider">Medium Risk (30 - 59)</div>
           <div className="text-2xl font-bold text-amber-600 mt-1">{mediumRiskCount}</div>
           <div className="text-[11px] text-amber-700 mt-1 flex items-center gap-1">
             <AlertTriangle className="h-3 w-3 text-amber-600" />
-            <span>Score: 25 - 49</span>
+            <span>Moderate Verification</span>
           </div>
         </div>
 
         <div className="bg-white p-4 rounded-xl border border-softGray-border shadow-sm">
-          <div className="text-[11px] font-bold text-rose-600 uppercase tracking-wider">Elevated / Critical</div>
-          <div className="text-2xl font-bold text-rose-600 mt-1">{highCriticalCount}</div>
+          <div className="text-[11px] font-bold text-orange-600 uppercase tracking-wider">High Risk (60 - 79)</div>
+          <div className="text-2xl font-bold text-orange-600 mt-1">{highRiskCount}</div>
+          <div className="text-[11px] text-orange-700 mt-1 flex items-center gap-1">
+            <AlertOctagon className="h-3 w-3 text-orange-600" />
+            <span>Enhanced Diligence</span>
+          </div>
+        </div>
+
+        <div className="bg-white p-4 rounded-xl border border-softGray-border shadow-sm">
+          <div className="text-[11px] font-bold text-rose-600 uppercase tracking-wider">Critical Risk (80 - 100)</div>
+          <div className="text-2xl font-bold text-rose-600 mt-1">{criticalRiskCount}</div>
           <div className="text-[11px] text-rose-700 mt-1 flex items-center gap-1">
             <AlertOctagon className="h-3 w-3 text-rose-600" />
-            <span>Score: 50 - 100</span>
+            <span>Financing Halted</span>
           </div>
         </div>
       </div>
@@ -306,7 +331,7 @@ export const InvoiceRiskAnalysisView: React.FC<InvoiceRiskAnalysisViewProps> = (
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="flex-1 max-w-xl">
             <label className="block text-xs font-bold text-slate-700 mb-1.5">
-              Select Invoice for Multi-Party Risk Analysis
+              Select Commercial Invoice for Multi-Party Risk Analysis
             </label>
             <div className="relative">
               <select
@@ -327,7 +352,7 @@ export const InvoiceRiskAnalysisView: React.FC<InvoiceRiskAnalysisViewProps> = (
             <button
               onClick={() => handleRunAnalysis()}
               disabled={isAnalyzing || !selectedInvoiceId}
-              className={`px-5 py-2.5 rounded-lg text-xs font-bold text-white transition-all flex items-center space-x-2 shadow-sm ${
+              className={`px-5 py-2.5 rounded-lg text-xs font-bold text-white transition-all flex items-center space-x-2 shadow-sm cursor-pointer ${
                 isAnalyzing
                   ? 'bg-slate-400 cursor-not-allowed'
                   : 'bg-royal hover:bg-royal-hover active:scale-95'
@@ -355,7 +380,7 @@ export const InvoiceRiskAnalysisView: React.FC<InvoiceRiskAnalysisViewProps> = (
               <AlertOctagon className="h-4 w-4 shrink-0" />
               <span>{error}</span>
             </div>
-            <button onClick={() => setError(null)} className="text-rose-500 font-bold hover:text-rose-700">✕</button>
+            <button onClick={() => setError(null)} className="text-rose-500 font-bold hover:text-rose-700 cursor-pointer">✕</button>
           </div>
         )}
 
@@ -365,7 +390,7 @@ export const InvoiceRiskAnalysisView: React.FC<InvoiceRiskAnalysisViewProps> = (
               <CheckCircle2 className="h-4 w-4 shrink-0" />
               <span>{successMessage}</span>
             </div>
-            <button onClick={() => setSuccessMessage(null)} className="text-emerald-500 font-bold hover:text-emerald-700">✕</button>
+            <button onClick={() => setSuccessMessage(null)} className="text-emerald-500 font-bold hover:text-emerald-700 cursor-pointer">✕</button>
           </div>
         )}
       </div>
@@ -381,7 +406,7 @@ export const InvoiceRiskAnalysisView: React.FC<InvoiceRiskAnalysisViewProps> = (
                   Calculated Risk Index
                 </span>
                 <span className={`px-2.5 py-0.5 rounded-full text-xs font-extrabold ${currentTheme.pill}`}>
-                  {currentAssessment.riskLevel}
+                  {currentAssessment.riskCategory || currentAssessment.riskLevel}
                 </span>
               </div>
 
@@ -399,11 +424,27 @@ export const InvoiceRiskAnalysisView: React.FC<InvoiceRiskAnalysisViewProps> = (
                 </div>
 
                 <div className={`mt-3 font-bold text-sm ${currentTheme.text}`}>
-                  {currentTheme.label}
+                  {currentTheme.label} ({currentTheme.range})
                 </div>
                 <div className="text-xs text-slate-500 mt-0.5 px-4">
                   {currentTheme.sub}
                 </div>
+              </div>
+
+              {/* Confidence & Calculation Explanation */}
+              <div className="mt-3 p-3 bg-slate-50 rounded-lg border border-slate-200 text-xs space-y-1.5">
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-500 font-semibold">Model Confidence:</span>
+                  <span className="font-mono font-bold text-navy">
+                    {Math.round((currentAssessment.confidence || currentAssessment.confidenceScore || 0.95) * 100)}%
+                  </span>
+                </div>
+                {currentAssessment.scoreCalculationExplanation && (
+                  <div className="pt-1.5 border-t border-slate-200 text-[11px] text-slate-600 leading-snug">
+                    <span className="font-bold text-slate-700">Calculation: </span>
+                    {currentAssessment.scoreCalculationExplanation}
+                  </div>
+                )}
               </div>
 
               {/* Key Invoice Summary Metadata */}
@@ -426,11 +467,9 @@ export const InvoiceRiskAnalysisView: React.FC<InvoiceRiskAnalysisViewProps> = (
                 </div>
                 <div className="flex justify-between">
                   <span className="text-slate-400">Evaluation Timestamp:</span>
-                  <span className="text-slate-600">{new Date(currentAssessment.analyzedAt).toLocaleString()}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-400">Analyst / Agent:</span>
-                  <span className="font-mono text-slate-600">{currentAssessment.analyzedBy}</span>
+                  <span className="text-slate-600">
+                    {new Date(currentAssessment.assessmentTimestamp || currentAssessment.analyzedAt).toLocaleString()}
+                  </span>
                 </div>
               </div>
 
@@ -465,7 +504,7 @@ export const InvoiceRiskAnalysisView: React.FC<InvoiceRiskAnalysisViewProps> = (
 
           {/* Right Column: Factors & Gemini Explanation (8 Cols) */}
           <div className="lg:col-span-8 space-y-6">
-            {/* Google Gemini Natural Language Underwriting Synthesis Card */}
+            {/* Google Gemini Structured Underwriting Synthesis Card */}
             <div className="bg-gradient-to-br from-white to-royal/5 p-6 rounded-xl border border-royal/20 shadow-sm relative overflow-hidden">
               <div className="flex items-center justify-between border-b border-royal/10 pb-3 mb-4">
                 <div className="flex items-center space-x-2">
@@ -473,51 +512,102 @@ export const InvoiceRiskAnalysisView: React.FC<InvoiceRiskAnalysisViewProps> = (
                     <Sparkles className="h-4 w-4" />
                   </div>
                   <h3 className="text-sm font-bold text-navy">
-                    Google Gemini 2.5 Flash Underwriting Synthesis
+                    Google Gemini AI Underwriting Synthesis
                   </h3>
                 </div>
                 <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-royal/10 text-royal font-bold border border-royal/20">
-                  Zod-Validated Schema
+                  Zod-Validated Structured Output
                 </span>
               </div>
 
-              {/* Executive Summary */}
+              {/* AI Summary */}
               <div className="mb-4">
                 <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">
-                  Executive Brief
+                  Executive Risk Summary
                 </div>
                 <p className="text-xs text-slate-800 leading-relaxed font-medium bg-white/70 p-3 rounded-lg border border-slate-200/60">
-                  {currentAssessment.explanation.executiveSummary}
+                  {currentAssessment.explanation.summary || currentAssessment.explanation.executiveSummary}
                 </p>
               </div>
 
-              {/* Key Observations */}
-              <div className="mb-4">
-                <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">
-                  Key Observations
+              {/* Key Concerns */}
+              {((currentAssessment.explanation.keyConcerns && currentAssessment.explanation.keyConcerns.length > 0) ||
+                (currentAssessment.explanation.keyObservations && currentAssessment.explanation.keyObservations.length > 0)) && (
+                <div className="mb-4">
+                  <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">
+                    Identified Commercial Concerns
+                  </div>
+                  <div className="space-y-1.5">
+                    {(currentAssessment.explanation.keyConcerns || currentAssessment.explanation.keyObservations || []).map(
+                      (concern, idx) => (
+                        <div
+                          key={idx}
+                          className="p-2.5 bg-white/80 rounded-lg border border-slate-200/70 text-xs text-slate-700 flex items-start space-x-2"
+                        >
+                          <div className="mt-0.5 text-royal shrink-0 font-bold">•</div>
+                          <span className="leading-snug">{concern}</span>
+                        </div>
+                      )
+                    )}
+                  </div>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                  {currentAssessment.explanation.keyObservations.map((obs, idx) => (
-                    <div
-                      key={idx}
-                      className="p-2.5 bg-white/80 rounded-lg border border-slate-200/70 text-xs text-slate-700 flex items-start space-x-2"
-                    >
-                      <div className="mt-0.5 text-royal shrink-0">•</div>
-                      <span className="leading-snug">{obs}</span>
+              )}
+
+              {/* Supporting Evidence */}
+              {currentAssessment.explanation.supportingEvidence && currentAssessment.explanation.supportingEvidence.length > 0 && (
+                <div className="mb-4">
+                  <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">
+                    Supporting Underwriting Evidence
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                    {currentAssessment.explanation.supportingEvidence.map((ev, idx) => (
+                      <div
+                        key={idx}
+                        className="p-2.5 bg-white/60 rounded-lg border border-slate-200/60 text-xs text-slate-600 flex items-start space-x-2"
+                      >
+                        <CheckCircle className="h-3.5 w-3.5 text-emerald-600 mt-0.5 shrink-0" />
+                        <span className="leading-tight">{ev}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Recommended Review Actions */}
+              {currentAssessment.explanation.recommendedReviewActions &&
+                currentAssessment.explanation.recommendedReviewActions.length > 0 && (
+                  <div className="mb-4">
+                    <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">
+                      Recommended Review Actions
                     </div>
-                  ))}
-                </div>
-              </div>
+                    <div className="space-y-1.5">
+                      {currentAssessment.explanation.recommendedReviewActions.map((act, idx) => (
+                        <div
+                          key={idx}
+                          className="p-2.5 bg-royal/5 rounded-lg border border-royal/15 text-xs text-navy font-medium flex items-start space-x-2"
+                        >
+                          <ArrowRight className="h-3.5 w-3.5 text-royal mt-0.5 shrink-0" />
+                          <span>{act}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
-              {/* Underwriting Credit Assessment */}
-              <div>
-                <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">
-                  Credit Risk Assessment
+              {/* Data Limitations */}
+              {((currentAssessment.dataLimitations && currentAssessment.dataLimitations.length > 0) ||
+                (currentAssessment.explanation.limitations && currentAssessment.explanation.limitations.length > 0)) && (
+                <div className="pt-2 border-t border-royal/10">
+                  <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
+                    Data Limitations & Scope Boundary
+                  </div>
+                  <ul className="list-disc list-inside text-[11px] text-slate-500 space-y-0.5">
+                    {(currentAssessment.dataLimitations || currentAssessment.explanation.limitations || []).map((lim, idx) => (
+                      <li key={idx}>{lim}</li>
+                    ))}
+                  </ul>
                 </div>
-                <p className="text-xs text-slate-700 leading-relaxed bg-white/70 p-3 rounded-lg border border-slate-200/60">
-                  {currentAssessment.explanation.underwritingAssessment}
-                </p>
-              </div>
+              )}
             </div>
 
             {/* Detected Risk Factors & Evidence Breakdown */}
@@ -526,22 +616,22 @@ export const InvoiceRiskAnalysisView: React.FC<InvoiceRiskAnalysisViewProps> = (
                 <div className="flex items-center space-x-2">
                   <Layers className="h-4 w-4 text-navy" />
                   <h3 className="text-sm font-bold text-navy">
-                    Deterministic Risk Factor Breakdown ({currentAssessment.detectedFactors.length})
+                    Deterministic Risk Factor Breakdown ({(currentAssessment.individualRiskFactors || currentAssessment.detectedFactors || []).length})
                   </h3>
                 </div>
                 <span className="text-xs text-slate-500">
-                  Cumulative Score Impact: <strong>+{currentAssessment.riskScore} pts</strong>
+                  Calculated Score: <strong>{currentAssessment.riskScore}/100</strong>
                 </span>
               </div>
 
-              {currentAssessment.detectedFactors.length === 0 ? (
+              {(currentAssessment.individualRiskFactors || currentAssessment.detectedFactors || []).length === 0 ? (
                 <div className="text-center py-8 text-xs text-slate-500">
                   <CheckCircle2 className="h-8 w-8 text-emerald-500 mx-auto mb-2" />
                   No risk factors detected. Commercial parameters fully reconciled.
                 </div>
               ) : (
                 <div className="space-y-3">
-                  {currentAssessment.detectedFactors.map((factor) => {
+                  {(currentAssessment.individualRiskFactors || currentAssessment.detectedFactors || []).map((factor) => {
                     const isMitigant = factor.scoreImpact < 0;
                     return (
                       <div
@@ -608,21 +698,56 @@ export const InvoiceRiskAnalysisView: React.FC<InvoiceRiskAnalysisViewProps> = (
           <Info className="h-8 w-8 text-royal mx-auto mb-2" />
           <h4 className="text-sm font-bold text-navy">No Assessment Loaded</h4>
           <p className="text-xs text-slate-500 mt-1 max-w-md mx-auto">
-            Select an invoice from the dropdown above and click "Execute Risk Assessment" to run the deterministic checks and Gemini underwriting analysis.
+            Select an invoice from the dropdown above and click "Execute Risk Assessment" to run deterministic checks and Gemini underwriting analysis.
           </p>
         </div>
       )}
 
-      {/* Assessment History Table */}
+      {/* Assessment History Table with Filters */}
       <div className="bg-white rounded-xl border border-softGray-border shadow-sm overflow-hidden">
-        <div className="px-6 py-4 border-b border-softGray-border flex items-center justify-between">
+        <div className="px-6 py-4 border-b border-softGray-border flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h3 className="text-sm font-bold text-navy">Recent Risk Evaluations</h3>
-            <p className="text-xs text-slate-500">Historical underwriting assessments recorded in this session</p>
+            <h3 className="text-sm font-bold text-navy">Underwriting Assessment History</h3>
+            <p className="text-xs text-slate-500">Historical multi-party risk assessments recorded on DRUNIX</p>
           </div>
-          <span className="text-xs text-slate-500 font-mono">
-            {history.length} assessments
-          </span>
+
+          {/* Filters for Category & Status */}
+          <div className="flex items-center space-x-3 flex-wrap gap-2">
+            <div className="flex items-center space-x-1.5 text-xs">
+              <span className="text-slate-500 font-medium">Category:</span>
+              <select
+                value={filterCategory}
+                onChange={(e) => setFilterCategory(e.target.value)}
+                className="px-2.5 py-1 bg-slate-50 border border-slate-300 rounded text-xs text-slate-700 font-semibold focus:outline-none"
+              >
+                <option value="ALL">All Categories</option>
+                <option value="LOW">Low (0-29)</option>
+                <option value="MEDIUM">Medium (30-59)</option>
+                <option value="HIGH">High (60-79)</option>
+                <option value="CRITICAL">Critical (80-100)</option>
+              </select>
+            </div>
+
+            <div className="flex items-center space-x-1.5 text-xs">
+              <span className="text-slate-500 font-medium">Status:</span>
+              <select
+                value={filterInvoiceStatus}
+                onChange={(e) => setFilterInvoiceStatus(e.target.value)}
+                className="px-2.5 py-1 bg-slate-50 border border-slate-300 rounded text-xs text-slate-700 font-semibold focus:outline-none"
+              >
+                <option value="ALL">All Statuses</option>
+                <option value="CREATED">Created</option>
+                <option value="ACCEPTED">Accepted</option>
+                <option value="FINANCING_REQUESTED">Financing Requested</option>
+                <option value="FINANCED">Financed</option>
+                <option value="SETTLED">Settled</option>
+              </select>
+            </div>
+
+            <span className="text-xs text-slate-400 font-mono">
+              {filteredHistory.length} of {history.length}
+            </span>
+          </div>
         </div>
 
         <div className="overflow-x-auto">
@@ -632,66 +757,74 @@ export const InvoiceRiskAnalysisView: React.FC<InvoiceRiskAnalysisViewProps> = (
                 <th className="px-6 py-3">ID / Reference</th>
                 <th className="px-6 py-3">Parties</th>
                 <th className="px-6 py-3">Amount</th>
-                <th className="px-6 py-3">Score & Level</th>
+                <th className="px-6 py-3">Score & Category</th>
                 <th className="px-6 py-3">Factors</th>
                 <th className="px-6 py-3">Evaluated At</th>
                 <th className="px-6 py-3 text-right">Action</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 text-slate-700">
-              {history.map((item) => {
-                const itemTheme = getScoreTheme(item.riskScore);
-                const isSelected = currentAssessment?.id === item.id;
-                return (
-                  <tr
-                    key={item.id}
-                    className={`hover:bg-slate-50/80 transition-colors ${
-                      isSelected ? 'bg-royal/5 font-medium' : ''
-                    }`}
-                  >
-                    <td className="px-6 py-3.5">
-                      <div className="font-mono font-bold text-navy">{item.invoiceNumber}</div>
-                      <div className="text-[10px] text-slate-400">{item.id}</div>
-                    </td>
-                    <td className="px-6 py-3.5">
-                      <div className="font-medium text-slate-800 truncate max-w-[200px]">{item.supplierOrg}</div>
-                      <div className="text-[11px] text-slate-500 truncate max-w-[200px]">→ {item.buyerOrg}</div>
-                    </td>
-                    <td className="px-6 py-3.5 font-bold text-navy">
-                      ₹{item.amount.toLocaleString('en-IN')}
-                    </td>
-                    <td className="px-6 py-3.5">
-                      <div className="flex items-center space-x-2">
-                        <span className={`font-mono font-bold text-sm ${itemTheme.text}`}>
-                          {item.riskScore}/100
+              {filteredHistory.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="px-6 py-8 text-center text-slate-400">
+                    No risk assessments match the selected filters.
+                  </td>
+                </tr>
+              ) : (
+                filteredHistory.map((item) => {
+                  const itemTheme = getScoreTheme(item.riskScore);
+                  const isSelected = currentAssessment?.id === item.id;
+                  return (
+                    <tr
+                      key={item.id}
+                      className={`hover:bg-slate-50/80 transition-colors ${
+                        isSelected ? 'bg-royal/5 font-medium' : ''
+                      }`}
+                    >
+                      <td className="px-6 py-3.5">
+                        <div className="font-mono font-bold text-navy">{item.invoiceNumber}</div>
+                        <div className="text-[10px] text-slate-400">{item.id}</div>
+                      </td>
+                      <td className="px-6 py-3.5">
+                        <div className="font-medium text-slate-800 truncate max-w-[200px]">{item.supplierOrg}</div>
+                        <div className="text-[11px] text-slate-500 truncate max-w-[200px]">→ {item.buyerOrg}</div>
+                      </td>
+                      <td className="px-6 py-3.5 font-bold text-navy">
+                        ₹{item.amount.toLocaleString('en-IN')}
+                      </td>
+                      <td className="px-6 py-3.5">
+                        <div className="flex items-center space-x-2">
+                          <span className={`font-mono font-bold text-sm ${itemTheme.text}`}>
+                            {item.riskScore}/100
+                          </span>
+                          <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${itemTheme.pill}`}>
+                            {item.riskCategory || item.riskLevel}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-3.5">
+                        <span className="font-mono text-slate-600 bg-slate-100 px-2 py-0.5 rounded text-[11px]">
+                          {(item.individualRiskFactors || item.detectedFactors || []).length} factors
                         </span>
-                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${itemTheme.pill}`}>
-                          {item.riskLevel}
-                        </span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-3.5">
-                      <span className="font-mono text-slate-600 bg-slate-100 px-2 py-0.5 rounded text-[11px]">
-                        {item.detectedFactors.length} factors
-                      </span>
-                    </td>
-                    <td className="px-6 py-3.5 text-slate-500">
-                      {new Date(item.analyzedAt).toLocaleDateString()} {new Date(item.analyzedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                    </td>
-                    <td className="px-6 py-3.5 text-right">
-                      <button
-                        onClick={() => {
-                          setCurrentAssessment(item);
-                          setSelectedInvoiceId(item.invoiceId);
-                        }}
-                        className="px-3 py-1 bg-royal/10 text-royal hover:bg-royal hover:text-white rounded text-xs font-semibold transition-all"
-                      >
-                        Inspect
-                      </button>
-                    </td>
-                  </tr>
-                );
-              })}
+                      </td>
+                      <td className="px-6 py-3.5 text-slate-500">
+                        {new Date(item.assessmentTimestamp || item.analyzedAt).toLocaleDateString()} {new Date(item.assessmentTimestamp || item.analyzedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </td>
+                      <td className="px-6 py-3.5 text-right">
+                        <button
+                          onClick={() => {
+                            setCurrentAssessment(item);
+                            setSelectedInvoiceId(item.invoiceId);
+                          }}
+                          className="px-3 py-1 bg-royal/10 text-royal hover:bg-royal hover:text-white rounded text-xs font-semibold transition-all cursor-pointer"
+                        >
+                          Inspect
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
             </tbody>
           </table>
         </div>
@@ -717,7 +850,7 @@ export const InvoiceRiskAnalysisView: React.FC<InvoiceRiskAnalysisViewProps> = (
               </div>
               <button
                 onClick={() => setShowMethodologyModal(false)}
-                className="text-slate-400 hover:text-slate-600 text-lg font-bold"
+                className="text-slate-400 hover:text-slate-600 text-lg font-bold cursor-pointer"
               >
                 ✕
               </button>
@@ -727,7 +860,7 @@ export const InvoiceRiskAnalysisView: React.FC<InvoiceRiskAnalysisViewProps> = (
               <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200">
                 <h4 className="font-bold text-navy mb-1">Scoring Framework (0 to 100 Index)</h4>
                 <p className="text-slate-600 leading-relaxed">
-                  Every receivable evaluated on InvoiceNet begins with a baseline score of 0. Risk factors apply positive penalty points, while cryptographic endorsements apply credit mitigant reductions. The final score is bounded strictly between 0 and 100.
+                  Every receivable evaluated on InvoiceNet begins with a baseline score of 0. Risk factors apply positive penalty points, while cryptographic endorsements apply credit mitigant reductions. The final score is bounded strictly between 0 and 100. Unavailable evidence is recorded in data limitations and never penalized.
                 </p>
               </div>
 
@@ -736,20 +869,20 @@ export const InvoiceRiskAnalysisView: React.FC<InvoiceRiskAnalysisViewProps> = (
                 <h4 className="font-bold text-navy mb-2 uppercase tracking-wider text-[11px]">Risk Brackets & Operational Outcomes</h4>
                 <div className="grid grid-cols-2 gap-2">
                   <div className="p-2.5 bg-emerald-50 border border-emerald-200 rounded-lg">
-                    <span className="font-bold text-emerald-800">LOW (0 - 24):</span>
-                    <p className="text-[11px] text-emerald-700 mt-0.5">Prime trade receivable. Approved for automated discounting advance.</p>
+                    <span className="font-bold text-emerald-800">LOW (0 - 29):</span>
+                    <p className="text-[11px] text-emerald-700 mt-0.5">Prime trade receivable. Approved for automated discount financing.</p>
                   </div>
                   <div className="p-2.5 bg-amber-50 border border-amber-200 rounded-lg">
-                    <span className="font-bold text-amber-800">MEDIUM (25 - 49):</span>
-                    <p className="text-[11px] text-amber-700 mt-0.5">Minor parameter variance. Standard delivery confirmation required.</p>
+                    <span className="font-bold text-amber-800">MEDIUM (30 - 59):</span>
+                    <p className="text-[11px] text-amber-700 mt-0.5">Moderate discrepancy or volume deviation. Standard commercial verification.</p>
                   </div>
                   <div className="p-2.5 bg-orange-50 border border-orange-200 rounded-lg">
-                    <span className="font-bold text-orange-800">HIGH (50 - 74):</span>
-                    <p className="text-[11px] text-orange-700 mt-0.5">Elevated risk. PO discrepancy or volume spike. Enhanced diligence.</p>
+                    <span className="font-bold text-orange-800">HIGH (60 - 79):</span>
+                    <p className="text-[11px] text-orange-700 mt-0.5">Elevated risk. PO discrepancy, arithmetic mismatch, or outlier. Enhanced diligence.</p>
                   </div>
                   <div className="p-2.5 bg-rose-50 border border-rose-200 rounded-lg">
-                    <span className="font-bold text-rose-800">CRITICAL (75 - 100):</span>
-                    <p className="text-[11px] text-rose-700 mt-0.5">Collision or date paradox detected. Hold all financing and escalate.</p>
+                    <span className="font-bold text-rose-800">CRITICAL (80 - 100):</span>
+                    <p className="text-[11px] text-rose-700 mt-0.5">Reference collision, hash duplication, or date paradox. Hold all financing immediately.</p>
                   </div>
                 </div>
               </div>
@@ -765,6 +898,10 @@ export const InvoiceRiskAnalysisView: React.FC<InvoiceRiskAnalysisViewProps> = (
                   <div className="flex justify-between p-2 bg-rose-50/60 rounded border border-rose-200">
                     <span>Duplicate Cryptographic SHA-256 Hash</span>
                     <span className="font-bold text-rose-700">+45 pts (CRITICAL)</span>
+                  </div>
+                  <div className="flex justify-between p-2 bg-orange-50/60 rounded border border-orange-200">
+                    <span>Arithmetic Inconsistency (Subtotal + Tax != Total)</span>
+                    <span className="font-bold text-orange-700">+25 pts (HIGH)</span>
                   </div>
                   <div className="flex justify-between p-2 bg-orange-50/60 rounded border border-orange-200">
                     <span>Statistical Amount Outlier (&gt;2.5σ or &gt;3.5x baseline)</span>
@@ -783,16 +920,12 @@ export const InvoiceRiskAnalysisView: React.FC<InvoiceRiskAnalysisViewProps> = (
                     <span className="font-bold text-amber-700">+15 pts (MEDIUM)</span>
                   </div>
                   <div className="flex justify-between p-2 bg-amber-50/60 rounded border border-amber-200">
-                    <span>Abnormal Payment Terms (&gt;180 Days Tenor)</span>
+                    <span>Supplier GSTIN Format Deviation</span>
                     <span className="font-bold text-amber-700">+15 pts (MEDIUM)</span>
                   </div>
-                  <div className="flex justify-between p-2 bg-slate-100 rounded border border-slate-200">
-                    <span>Missing Purchase Order Linkage</span>
-                    <span className="font-bold text-slate-700">+10 pts (LOW)</span>
-                  </div>
-                  <div className="flex justify-between p-2 bg-slate-100 rounded border border-slate-200">
-                    <span>Pending BuyerMSP Acceptance (Draft State)</span>
-                    <span className="font-bold text-slate-700">+10 pts (LOW)</span>
+                  <div className="flex justify-between p-2 bg-amber-50/60 rounded border border-amber-200">
+                    <span>Abnormal Payment Terms (&gt;180 Days Tenor)</span>
+                    <span className="font-bold text-amber-700">+15 pts (MEDIUM)</span>
                   </div>
                   <div className="flex justify-between p-2 bg-emerald-50 rounded border border-emerald-300">
                     <span>BuyerMSP Cryptographic Endorsement Verified</span>
@@ -805,10 +938,10 @@ export const InvoiceRiskAnalysisView: React.FC<InvoiceRiskAnalysisViewProps> = (
               <div className="p-3 bg-blue-50/70 rounded-xl border border-blue-200 text-blue-900 space-y-1">
                 <div className="font-bold flex items-center space-x-1">
                   <Sparkles className="h-3.5 w-3.5 text-royal" />
-                  <span>AI Guardrails & Zero-Hallucination Policy</span>
+                  <span>AI Guardrails & Explainability Assurance</span>
                 </div>
                 <p className="text-[11px] leading-relaxed">
-                  Google Gemini 2.5 Flash is strictly restricted to qualitative synthesis of deterministic findings. The LLM cannot modify the mathematical risk score, fabricate missing invoice records, or execute binding financing decisions.
+                  Google Gemini operates strictly as an underwriting synthesizer of deterministic mathematical findings. The LLM cannot alter the calculated score, invent facts, or bypass DRUNIX endorsement consensus.
                 </p>
               </div>
             </div>
@@ -816,7 +949,7 @@ export const InvoiceRiskAnalysisView: React.FC<InvoiceRiskAnalysisViewProps> = (
             <div className="mt-6 pt-4 border-t flex justify-end">
               <button
                 onClick={() => setShowMethodologyModal(false)}
-                className="px-4 py-2 bg-royal text-white text-xs font-bold rounded-lg hover:bg-royal-hover transition-colors"
+                className="px-4 py-2 bg-royal text-white text-xs font-bold rounded-lg hover:bg-royal-hover transition-colors cursor-pointer"
               >
                 Close Model Guide
               </button>

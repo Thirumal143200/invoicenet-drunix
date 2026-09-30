@@ -15,6 +15,8 @@ router.use(copilotLimiter);
 
 router.post('/chat', CopilotController.chat);
 router.get('/suggestions', CopilotController.getSuggestions);
+router.get('/history', CopilotController.getHistory);
+router.delete('/history', CopilotController.clearHistory);
 router.get('/proof/:invoiceId', CopilotController.getBlockchainProof);
 
 export default router;
