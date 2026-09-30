@@ -1,15 +1,20 @@
 import React from 'react';
 import { UserPersona } from '../types';
-import { Plus, RefreshCw, ShieldAlert, Cpu, Sparkles, Bot } from 'lucide-react';
+import { Plus, RefreshCw, ShieldAlert, Cpu, Sparkles, Bot, Bell, LogIn, LogOut, UserCheck } from 'lucide-react';
 
 interface HeaderProps {
   currentPersona: UserPersona;
-  activeTab: 'INVOICES' | 'NETWORK' | 'ANALYTICS' | 'FRAUD_CENTER' | 'CASH_FLOW' | 'RISK_ENGINE' | 'COPILOT';
+  activeTab: 'INVOICES' | 'NETWORK' | 'ANALYTICS' | 'FRAUD_CENTER' | 'CASH_FLOW' | 'RISK_ENGINE' | 'COPILOT' | 'FINANCING' | 'AUDIT_TRAIL';
   blockHeight: number;
+  unreadCount?: number;
+  authenticatedUser?: any | null;
   onOpenCreateInvoice: () => void;
   onOpenDocIntelligence: () => void;
   onOpenCopilot: () => void;
   onOpenDoubleFinancing: () => void;
+  onOpenAuthModal: () => void;
+  onOpenNotifications: () => void;
+  onLogout: () => void;
   onRefresh: () => void;
 }
 
@@ -17,10 +22,15 @@ export const Header: React.FC<HeaderProps> = ({
   currentPersona,
   activeTab,
   blockHeight,
+  unreadCount = 0,
+  authenticatedUser,
   onOpenCreateInvoice,
   onOpenDocIntelligence,
   onOpenCopilot,
   onOpenDoubleFinancing,
+  onOpenAuthModal,
+  onOpenNotifications,
+  onLogout,
   onRefresh,
 }) => {
   const getTabTitle = () => {
@@ -39,6 +49,10 @@ export const Header: React.FC<HeaderProps> = ({
         return 'AI-Powered Invoice Risk Engine';
       case 'COPILOT':
         return 'AI Financial Copilot Workspace';
+      case 'FINANCING':
+        return 'DRUNIX Invoice Financing Exchange';
+      case 'AUDIT_TRAIL':
+        return 'Consortium Operations & Audit Trail';
     }
   };
 
@@ -58,6 +72,10 @@ export const Header: React.FC<HeaderProps> = ({
         return 'Explainable 0-100 risk scoring index, PO reconciliation, and Google Gemini 2.5 Flash underwriting synthesis';
       case 'COPILOT':
         return 'Natural-language queries grounded on DRUNIX distributed ledger records & AI risk engine';
+      case 'FINANCING':
+        return 'Submit receivables for competitive financier bids, review discount APRs, and track disbursements';
+      case 'AUDIT_TRAIL':
+        return 'Immutable event log of user logins, invoice submissions, multi-party endorsements, and payments';
     }
   };
 
@@ -71,7 +89,7 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
 
         {/* Right Action Bar */}
-        <div className="flex items-center space-x-3">
+        <div className="flex items-center space-x-2.5">
           {/* Active Persona Badge */}
           <div className="hidden md:flex items-center space-x-2 px-3 py-1.5 rounded-lg bg-softGray border border-softGray-border text-xs">
             <span className="font-semibold text-navy">{currentPersona.name}</span>
@@ -109,10 +127,43 @@ export const Header: React.FC<HeaderProps> = ({
           >
             <Sparkles className="h-4 w-4 text-amber-300 group-hover:scale-110 transition-transform" />
             <span>AI Copilot</span>
-            <span className="hidden lg:inline text-[9px] font-mono px-1 py-0.2 rounded bg-royal text-blue-100 font-semibold ml-0.5">
-              Role: {currentPersona.role}
-            </span>
           </button>
+
+          {/* Notifications Bell */}
+          <button
+            onClick={onOpenNotifications}
+            className="p-2 rounded-lg bg-white border border-softGray-border hover:bg-softGray text-slate-600 hover:text-navy transition-colors shadow-sm relative"
+            title="In-App Notifications"
+          >
+            <Bell className="h-4 w-4" />
+            {unreadCount > 0 && (
+              <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-rose-500 text-white text-[9px] font-bold flex items-center justify-center animate-pulse">
+                {unreadCount > 9 ? '9+' : unreadCount}
+              </span>
+            )}
+          </button>
+
+          {/* User Sign In / Profile Button */}
+          {authenticatedUser ? (
+            <div className="flex items-center space-x-1">
+              <button
+                onClick={onLogout}
+                className="p-2 rounded-lg bg-white border border-softGray-border hover:bg-rose-50 text-slate-600 hover:text-rose-600 transition-colors shadow-sm"
+                title={`Signed in as ${authenticatedUser.fullName} (${authenticatedUser.role}) - Click to sign out`}
+              >
+                <LogOut className="h-4 w-4" />
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={onOpenAuthModal}
+              className="px-3 py-2 rounded-lg bg-royal hover:bg-royal-hover text-white font-semibold text-xs flex items-center space-x-1.5 transition-colors shadow-sm"
+              title="Sign In or Register Account"
+            >
+              <LogIn className="h-4 w-4" />
+              <span className="hidden sm:inline">Sign In</span>
+            </button>
+          )}
 
           {/* Refresh Button */}
           <button

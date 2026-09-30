@@ -15,6 +15,11 @@ import { InvoiceRiskAnalysisView } from './components/InvoiceRiskAnalysisView';
 import { CopilotWorkspaceView } from './components/CopilotWorkspaceView';
 import { Invoice, AnalyticsMetrics, UserPersona } from './types';
 import { Zap, ShieldCheck, Clock, TrendingUp, DollarSign, Bot, Sparkles } from 'lucide-react';
+import { AuthModal } from './components/AuthModal';
+import { FinancingWorkflowView } from './components/FinancingWorkflowView';
+import { AuditTrailView } from './components/AuditTrailView';
+import { RecordPaymentModal } from './components/RecordPaymentModal';
+import { NotificationsDrawer } from './components/NotificationsDrawer';
 
 const PERSONAS: UserPersona[] = [
   {
@@ -49,11 +54,18 @@ const PERSONAS: UserPersona[] = [
 
 export const App: React.FC = () => {
   const [currentPersona, setCurrentPersona] = useState<UserPersona>(PERSONAS[0]);
-  const [activeTab, setActiveTab] = useState<'INVOICES' | 'NETWORK' | 'ANALYTICS' | 'FRAUD_CENTER' | 'CASH_FLOW' | 'RISK_ENGINE' | 'COPILOT'>('INVOICES');
+  const [activeTab, setActiveTab] = useState<'INVOICES' | 'NETWORK' | 'ANALYTICS' | 'FRAUD_CENTER' | 'CASH_FLOW' | 'RISK_ENGINE' | 'COPILOT' | 'FINANCING' | 'AUDIT_TRAIL'>('INVOICES');
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [metrics, setMetrics] = useState<AnalyticsMetrics | null>(null);
   const [blockHeight, setBlockHeight] = useState<number>(1045);
   const [loading, setLoading] = useState(true);
+
+  // Authentication & Notifications State
+  const [authenticatedUser, setAuthenticatedUser] = useState<any | null>(null);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+  const [paymentModalInvoice, setPaymentModalInvoice] = useState<Invoice | null>(null);
+  const [unreadCount, setUnreadCount] = useState<number>(0);
 
   // Modals
   const [selectedProofInvoice, setSelectedProofInvoice] = useState<Invoice | null>(null);
@@ -65,6 +77,52 @@ export const App: React.FC = () => {
   // Filter & Connection state
   const [filterStatus, setFilterStatus] = useState<string>('ALL');
   const [backendState, setBackendState] = useState<'ONLINE' | 'WAKING' | 'OFFLINE'>('ONLINE');
+
+  const checkAuth = async () => {
+    const token = localStorage.getItem('invoicenet_auth_token');
+    if (token) {
+      try {
+        const res = await fetch('/api/auth/me', {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const data = await res.json();
+        if (data.success && data.data?.user) {
+          setAuthenticatedUser(data.data.user);
+          const match = PERSONAS.find((p) => p.role === data.data.user.role);
+          if (match) {
+            setCurrentPersona({
+              ...match,
+              name: data.data.user.fullName || match.name,
+              org: data.data.user.organization?.name || match.org,
+            });
+          }
+        } else {
+          localStorage.removeItem('invoicenet_auth_token');
+          setAuthenticatedUser(null);
+        }
+      } catch (err) {
+        console.warn('Auth check error:', err);
+      }
+    }
+  };
+
+  const fetchUnreadCount = async () => {
+    try {
+      const token = localStorage.getItem('invoicenet_auth_token');
+      const headers: Record<string, string> = {
+        'x-user-role': currentPersona.role,
+        'x-user-id': currentPersona.name,
+      };
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+      const res = await fetch('/api/notifications/unread/count', { headers });
+      const data = await res.json();
+      if (data.success && typeof data.data?.count === 'number') {
+        setUnreadCount(data.data.count);
+      }
+    } catch {
+      // ignore
+    }
+  };
 
   const fetchData = async () => {
     try {
@@ -97,10 +155,37 @@ export const App: React.FC = () => {
   };
 
   useEffect(() => {
+    checkAuth();
     fetchData();
-    const interval = setInterval(fetchData, 4000);
+    fetchUnreadCount();
+    const interval = setInterval(() => {
+      fetchData();
+      fetchUnreadCount();
+    }, 4000);
     return () => clearInterval(interval);
-  }, []);
+  }, [currentPersona.role]);
+
+  const handleLogout = () => {
+    localStorage.removeItem('invoicenet_auth_token');
+    setAuthenticatedUser(null);
+    fetchUnreadCount();
+  };
+
+  const handleAuthSuccess = (user: any, token: string) => {
+    localStorage.setItem('invoicenet_auth_token', token);
+    setAuthenticatedUser(user);
+    const match = PERSONAS.find((p) => p.role === user.role);
+    if (match) {
+      setCurrentPersona({
+        ...match,
+        name: user.fullName || match.name,
+        org: user.organization?.name || match.org,
+      });
+    }
+    setIsAuthModalOpen(false);
+    fetchData();
+    fetchUnreadCount();
+  };
 
   const filteredInvoices = invoices.filter((inv) => {
     if (filterStatus === 'ALL') return true;
@@ -133,10 +218,15 @@ export const App: React.FC = () => {
           currentPersona={currentPersona}
           activeTab={activeTab}
           blockHeight={blockHeight}
+          unreadCount={unreadCount}
+          authenticatedUser={authenticatedUser}
           onOpenCreateInvoice={() => setIsCreateInvoiceModalOpen(true)}
           onOpenDocIntelligence={() => setIsDocWorkspaceOpen(true)}
           onOpenCopilot={() => setIsCopilotOpen(true)}
           onOpenDoubleFinancing={() => setIsDoubleFinancingModalOpen(true)}
+          onOpenAuthModal={() => setIsAuthModalOpen(true)}
+          onOpenNotifications={() => setIsNotificationsOpen(true)}
+          onLogout={handleLogout}
           onRefresh={fetchData}
         />
 
@@ -366,6 +456,20 @@ export const App: React.FC = () => {
               }}
             />
           )}
+
+          {/* TAB 8: FINANCING WORKFLOW */}
+          {activeTab === 'FINANCING' && (
+            <FinancingWorkflowView
+              currentPersona={currentPersona}
+              invoices={invoices}
+              onRefresh={fetchData}
+            />
+          )}
+
+          {/* TAB 9: CONSORTIUM AUDIT TRAIL */}
+          {activeTab === 'AUDIT_TRAIL' && (
+            <AuditTrailView currentPersona={currentPersona} />
+          )}
         </main>
       </div>
 
@@ -393,6 +497,32 @@ export const App: React.FC = () => {
         onClose={() => setIsDocWorkspaceOpen(false)}
         onInvoiceCreated={fetchData}
         currentPersona={currentPersona}
+      />
+
+      <AuthModal
+        isOpen={isAuthModalOpen}
+        onClose={() => setIsAuthModalOpen(false)}
+        onLoginSuccess={handleAuthSuccess}
+        personas={PERSONAS}
+      />
+
+      <NotificationsDrawer
+        isOpen={isNotificationsOpen}
+        onClose={() => {
+          setIsNotificationsOpen(false);
+          fetchUnreadCount();
+        }}
+        userId={authenticatedUser?.id}
+      />
+
+      <RecordPaymentModal
+        invoice={paymentModalInvoice}
+        isOpen={!!paymentModalInvoice}
+        onClose={() => setPaymentModalInvoice(null)}
+        onPaymentRecorded={() => {
+          fetchData();
+          fetchUnreadCount();
+        }}
       />
 
       {/* Floating AI Copilot Action Button */}

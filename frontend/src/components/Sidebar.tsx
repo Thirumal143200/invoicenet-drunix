@@ -14,14 +14,16 @@ import {
   TrendingUp,
   Cpu,
   Bot,
+  Landmark,
+  History,
 } from 'lucide-react';
 
 interface SidebarProps {
   currentPersona: UserPersona;
   onSelectPersona: (persona: UserPersona) => void;
   personas: UserPersona[];
-  activeTab: 'INVOICES' | 'NETWORK' | 'ANALYTICS' | 'FRAUD_CENTER' | 'CASH_FLOW' | 'RISK_ENGINE' | 'COPILOT';
-  onSelectTab: (tab: 'INVOICES' | 'NETWORK' | 'ANALYTICS' | 'FRAUD_CENTER' | 'CASH_FLOW' | 'RISK_ENGINE' | 'COPILOT') => void;
+  activeTab: 'INVOICES' | 'NETWORK' | 'ANALYTICS' | 'FRAUD_CENTER' | 'CASH_FLOW' | 'RISK_ENGINE' | 'COPILOT' | 'FINANCING' | 'AUDIT_TRAIL';
+  onSelectTab: (tab: 'INVOICES' | 'NETWORK' | 'ANALYTICS' | 'FRAUD_CENTER' | 'CASH_FLOW' | 'RISK_ENGINE' | 'COPILOT' | 'FINANCING' | 'AUDIT_TRAIL') => void;
   blockHeight: number;
   invoiceCount: number;
   onOpenDoubleFinancingModal: () => void;
@@ -185,6 +187,40 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </div>
           <span className="text-[10px] px-1.5 py-0.2 rounded-full font-mono bg-cyan-500/30 text-cyan-200 border border-cyan-400/30 font-bold">
             Live
+          </span>
+        </button>
+
+        <button
+          onClick={() => onSelectTab('FINANCING')}
+          className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-xs font-semibold transition-all ${
+            activeTab === 'FINANCING'
+              ? 'bg-royal text-white shadow-sm'
+              : 'text-slate-300 hover:bg-navy-light hover:text-white'
+          }`}
+        >
+          <div className="flex items-center space-x-2.5">
+            <Landmark className="h-4 w-4 text-amber-400" />
+            <span>Financing Exchange</span>
+          </div>
+          <span className="text-[10px] px-1.5 py-0.2 rounded-full font-mono bg-amber-500/30 text-amber-200 border border-amber-400/30 font-bold">
+            FinTech
+          </span>
+        </button>
+
+        <button
+          onClick={() => onSelectTab('AUDIT_TRAIL')}
+          className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-xs font-semibold transition-all ${
+            activeTab === 'AUDIT_TRAIL'
+              ? 'bg-royal text-white shadow-sm'
+              : 'text-slate-300 hover:bg-navy-light hover:text-white'
+          }`}
+        >
+          <div className="flex items-center space-x-2.5">
+            <History className="h-4 w-4 text-emerald-400" />
+            <span>Immutable Audit Trail</span>
+          </div>
+          <span className="text-[10px] px-1.5 py-0.2 rounded-full font-mono bg-emerald-500/30 text-emerald-200 border border-emerald-400/30 font-bold">
+            Logs
           </span>
         </button>
       </div>

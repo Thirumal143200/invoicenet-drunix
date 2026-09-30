@@ -10,6 +10,11 @@ import fraudRoutes from './routes/fraudRoutes';
 import cashFlowRoutes from './routes/cashFlowRoutes';
 import riskRoutes from './routes/riskRoutes';
 import path from 'path';
+import authRoutes from './routes/authRoutes';
+import financingRoutes from './routes/financingRoutes';
+import paymentRoutes from './routes/paymentRoutes';
+import auditNotificationRoutes from './routes/auditNotificationRoutes';
+import { initializeDatabase, isDatabasePostgres } from './db';
 import { DocumentIntelligenceService } from './services/documentIntelligenceService';
 import { CopilotService } from './services/copilotService';
 import { FraudDetectionService } from './services/fraudDetectionService';
@@ -18,6 +23,9 @@ import { InvoiceRiskEngineService } from './services/invoiceRiskEngineService';
 
 dotenv.config();
 dotenv.config({ path: path.resolve(__dirname, '../.env') });
+
+// Initialize database
+initializeDatabase().catch((e) => console.warn('Database init notice:', e.message));
 
 // Initialize services
 DocumentIntelligenceService.initializeGemini();
@@ -64,8 +72,9 @@ const healthHandler = (req: express.Request, res: express.Response) => {
   res.json({
     status: 'HEALTHY',
     service: 'InvoiceNet DRUNIX API Gateway',
-    version: '1.0.0',
+    version: '2.0.0',
     environment: process.env.NODE_ENV || 'production',
+    database: isDatabasePostgres() ? 'POSTGRESQL' : 'IN_MEMORY_TRANSACTIONAL',
     geminiEnabled: !!process.env.GEMINI_API_KEY,
     drunixChannel: 'invoicenet-channel',
     timestamp: new Date().toISOString(),
@@ -76,6 +85,10 @@ app.get('/health', healthHandler);
 app.get('/api/health', healthHandler);
 
 // Mount Routes
+app.use('/api/auth', authRoutes);
+app.use('/api/financing', financingRoutes);
+app.use('/api/payments', paymentRoutes);
+app.use('/api', auditNotificationRoutes);
 app.use('/api/invoices', invoiceRoutes);
 app.use('/api/blockchain', blockchainRoutes);
 app.use('/api/analytics', analyticsRoutes);

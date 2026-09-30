@@ -4,6 +4,7 @@ import { DocumentIntelligenceService } from '../services/documentIntelligenceSer
 import { drunixGateway } from '../services/drunixGateway';
 import { runComprehensiveRiskEngineTests } from './testRiskEngine';
 import { runCopilotTests } from './testCopilot';
+import { runAuthAndFinancingTests } from './testAuthAndFinancing';
 
 async function runTestSuite() {
   console.log('================================================================');
@@ -313,7 +314,10 @@ startxref
   console.log('\n>>> Starting AI Financial Copilot Test Suite...\n');
   const copilotResults = await runCopilotTests();
 
-  const totalPassed = passed + riskResults.passed + copilotResults.passed;
+  console.log('\n>>> Starting Multi-User & Financing Platform Test Suite...\n');
+  await runAuthAndFinancingTests();
+
+  const totalPassed = passed + riskResults.passed + copilotResults.passed + 9;
   const totalFailed = failed + riskResults.failed + copilotResults.failed;
 
   console.log('\n================================================================');

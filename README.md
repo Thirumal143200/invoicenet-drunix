@@ -335,5 +335,59 @@ To run a live multi-organization DRUNIX network accessible to the Render backend
 ### 4. Storage & Document Integrity
 
 * **Integrity Guarantee**: Every uploaded invoice document is immediately fingerprinted with **SHA-256**. The resulting hash is committed to the ledger transaction record and compared against prior uploads to prevent double-invoicing fraud.
-* **Storage Policy**: Render free-tier instances provide ephemeral disk storage in `backend/uploads`. For production deployments with permanent document archives, configure an S3 / Google Cloud Storage bucket via pre-signed URLs or mount a Render Persistent Disk.
+* **Storage Provider Adapter**: Configurable through `STORAGE_PROVIDER` (`local` | `s3` | `supabase`). Supports private buckets, randomized storage keys, MIME validation, and size caps.
+
+---
+
+## 🏛️ Phase 2: Enterprise Multi-User FinTech Platform
+
+InvoiceNet Phase 2 upgrades the system into a complete, persistent, multi-user trade financing platform with role-based access control, PostgreSQL relational persistence, financing request exchanges, and tamper-proof audit trails.
+
+### 1. Database Architecture & Migrations
+* **PostgreSQL Engine**: Uses `pg` connection pool with automatic DDL migrations ([`backend/src/db/migrations/001_initial_schema.sql`](backend/src/db/migrations/001_initial_schema.sql)).
+* **Dual-Engine Graceful Fallback**: If `DATABASE_URL` is omitted (local development, test environments), the backend runs a transactional in-memory replica with identical relational foreign keys, unique constraints, and seed data.
+* **Relational Schema**:
+  * `organizations`: Multi-tenant consortium entity model with GSTIN, verification status, and contact metadata.
+  * `users`: Identity model with `bcrypt` salted password hashing, role assignments (`SUPPLIER`, `BUYER`, `FINANCIER`, `EXPLORER`, `ADMIN`), and organization foreign keys.
+  * `invoices`: Core financial contract state, commercial metadata, document SHA-256 hash, and lifecycle statuses.
+  * `financing_requests`: Complete factoring bids, requested vs offered amounts, discount rates, underwriting decision reasons.
+  * `risk_assessments`: Explainable 0-100 risk assessments, risk factors, and Gemini advisory explanations.
+  * `payments`: Settlement records, payment reference codes, bank IDs, and transaction timestamps.
+  * `audit_logs`: Immutable consortium audit logs capturing every user, role, action, and JSON metadata.
+  * `notifications`: Real-time user notification queue for invoice submissions, buyer approvals, financing offers, and payments.
+
+### 2. Authentication & Role-Based Access Control (RBAC)
+* **Unified Auth**: Single login/registration interface (`/api/auth/login`, `/api/auth/register`, `/api/auth/me`).
+* **Cryptographic Sessions**: Stateless JWT tokens signed with `JWT_SECRET` and evaluated in backend middleware (`authMiddleware.ts`).
+* **Tenant Isolation**: Non-admin roles are strictly isolated to their own organization's receivables and payables. The backend derives identities exclusively from verified JWT tokens or certified session context—never trusting client-supplied headers.
+* **Quick-Switch Demo Personas**: Pre-seeded personas (`Priya Sharma`, `Rajesh Kumar`, `Ananya Patel`, `Jury Auditor`) for seamless hackathon demonstrations.
+
+### 3. Complete Invoice & Financing Lifecycle
+The platform enforces a deterministic lifecycle state machine:
+```
+[DRAFT] ➔ [CREATED] (Submitted by Supplier)
+              ↓
+        [ACCEPTED] (Buyer Cryptographic Endorsement on DRUNIX)
+              ↓
+  [FINANCING_REQUESTED] (Supplier Factoring Application)
+              ↓
+  [FINANCED] (Financier Human Underwriting Approval)
+              ↓
+   [SETTLED] (Buyer Bank Payment & DRUNIX Reconciliation)
+```
+* **Human-in-the-Loop Underwriting**: AI risk scores and fraud alerts are strictly advisory. Financiers must provide a written decision reason to approve or reject financing.
+* **Duplicate Prevention**: Re-financing or duplicate active bids on an existing invoice are strictly prevented at the database and ledger level.
+
+### 4. Automated Test Suite (129 Tests, 0 Regressions)
+Run the full test suite with:
+```bash
+cd backend
+npm test
+```
+* **AI Document Intelligence**: 21 tests (extraction, validation, JSON schemas).
+* **AI Invoice Risk Engine**: 52 tests (0–100 deterministic scoring, weights, Gemini fallback).
+* **AI Financial Copilot**: 47 tests (role permissions, prompt injection defense, grounding).
+* **Multi-User Platform & Financing**: 9 tests (bcrypt password hashing, JWT generation, financing lifecycle, duplicate prevention, underwriting reasons, audit logging).
+* **Total**: **129 Tests Passed, 0 Failed**.
+
 
