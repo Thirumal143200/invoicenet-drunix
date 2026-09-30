@@ -5,6 +5,7 @@ import {
   UserPersona,
   InvoiceRiskAssessment,
 } from '../types';
+import { apiUrl } from '../config/api';
 import {
   UploadCloud,
   FileText,
@@ -335,14 +336,14 @@ export const DocumentReviewWorkspace: React.FC<DocumentReviewWorkspaceProps> = (
                     <div className="w-full h-full flex flex-col justify-center items-center">
                       {extraction.mimeType.startsWith('image/') ? (
                         <img
-                          src={`/api/documents/file/${extraction.documentFileName}`}
+                          src={apiUrl(`/api/documents/file/${extraction.documentFileName}`)}
                           alt="Invoice Preview"
                           className="max-h-[380px] w-auto object-contain rounded border border-slate-200 shadow-sm"
                         />
                       ) : (
                         <div className="w-full h-full min-h-[380px]">
                           <iframe
-                            src={`/api/documents/file/${extraction.documentFileName}#toolbar=0`}
+                            src={`${apiUrl(`/api/documents/file/${extraction.documentFileName}`)}#toolbar=0`}
                             className="w-full h-full min-h-[380px] rounded border border-slate-200"
                             title="Invoice PDF"
                           />
@@ -366,6 +367,10 @@ export const DocumentReviewWorkspace: React.FC<DocumentReviewWorkspaceProps> = (
                     </div>
                     <div className="truncate text-slate-700 bg-softGray p-1.5 rounded border border-softGray-border">
                       {extraction.documentHash}
+                    </div>
+                    <div className="text-[10px] text-slate-400 font-sans flex items-center justify-between pt-1 border-t border-slate-100">
+                      <span>Document Storage: Ephemeral Cloud Cache</span>
+                      <span className="text-emerald-600 font-medium">SHA-256 Digest: Immutable</span>
                     </div>
                   </div>
                 )}

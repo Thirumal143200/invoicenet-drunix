@@ -62,8 +62,9 @@ export const App: React.FC = () => {
   const [isDocWorkspaceOpen, setIsDocWorkspaceOpen] = useState(false);
   const [isCopilotOpen, setIsCopilotOpen] = useState(false);
 
-  // Filter
+  // Filter & Connection state
   const [filterStatus, setFilterStatus] = useState<string>('ALL');
+  const [backendState, setBackendState] = useState<'ONLINE' | 'WAKING' | 'OFFLINE'>('ONLINE');
 
   const fetchData = async () => {
     try {
@@ -77,13 +78,19 @@ export const App: React.FC = () => {
       const metricData = await metricRes.json();
       const statusData = await statusRes.json();
 
-      if (invData.success) setInvoices(invData.data);
+      if (invData.success) {
+        setInvoices(invData.data);
+        setBackendState('ONLINE');
+      }
       if (metricData.success) setMetrics(metricData.data);
       if (statusData.success && statusData.data.currentBlockHeight) {
         setBlockHeight(statusData.data.currentBlockHeight);
       }
     } catch (err) {
-      console.error('Failed to fetch data:', err);
+      console.warn('Backend connection pending or waking:', err);
+      if (invoices.length === 0) {
+        setBackendState('WAKING');
+      }
     } finally {
       setLoading(false);
     }
@@ -132,6 +139,27 @@ export const App: React.FC = () => {
           onOpenDoubleFinancing={() => setIsDoubleFinancingModalOpen(true)}
           onRefresh={fetchData}
         />
+
+        {backendState === 'WAKING' && (
+          <div className="bg-amber-50 border-b border-amber-200 px-6 py-2.5 flex items-center justify-between text-xs text-amber-800 transition-all">
+            <div className="flex items-center space-x-2.5">
+              <span className="relative flex h-2.5 w-2.5">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-amber-500"></span>
+              </span>
+              <span className="font-semibold">Connecting to cloud backend...</span>
+              <span className="text-amber-700 hidden md:inline">
+                Render free-tier web services take 30–50 seconds to wake from idle spin-down.
+              </span>
+            </div>
+            <button
+              onClick={() => fetchData()}
+              className="px-2.5 py-1 bg-white border border-amber-300 rounded font-semibold text-amber-800 hover:bg-amber-100 shadow-xs transition-colors"
+            >
+              Retry Connection
+            </button>
+          </div>
+        )}
 
         {/* Content Container */}
         <main className="flex-1 p-8 space-y-6 max-w-7xl w-full mx-auto">

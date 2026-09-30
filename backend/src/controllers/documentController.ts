@@ -65,6 +65,8 @@ export class DocumentController {
 
       res.setHeader('Content-Type', contentType);
       res.setHeader('Content-Disposition', `inline; filename="${fileName}"`);
+      res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+      res.setHeader('Access-Control-Allow-Origin', '*');
       const fileStream = fs.createReadStream(filePath);
       fileStream.pipe(res);
     } catch (err: any) {

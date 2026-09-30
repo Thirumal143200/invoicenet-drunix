@@ -20,6 +20,10 @@ jobs:
           cd backend
           npm install
           npx tsc --noEmit
+      - name: Run Backend Comprehensive Test Suite
+        run: |
+          cd backend
+          npm test
 
   frontend-check:
     runs-on: ubuntu-latest
