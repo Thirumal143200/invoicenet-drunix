@@ -5,12 +5,14 @@ interface NotificationsDrawerProps {
   isOpen: boolean;
   onClose: () => void;
   userId?: string;
+  onOpenRemindersDashboard?: () => void;
 }
 
 export const NotificationsDrawer: React.FC<NotificationsDrawerProps> = ({
   isOpen,
   onClose,
   userId,
+  onOpenRemindersDashboard,
 }) => {
   const [notifications, setNotifications] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
@@ -136,6 +138,23 @@ export const NotificationsDrawer: React.FC<NotificationsDrawerProps> = ({
             ))
           )}
         </div>
+
+        {/* Footer Link to Reminders Dashboard */}
+        {onOpenRemindersDashboard && (
+          <div className="p-3 border-t border-slate-200 bg-slate-50">
+            <button
+              onClick={() => {
+                onClose();
+                onOpenRemindersDashboard();
+              }}
+              className="w-full py-2 px-3 rounded-lg bg-royal hover:bg-royal-hover text-white text-xs font-semibold flex items-center justify-center space-x-1.5 transition-colors shadow-2xs"
+            >
+              <Bell className="h-3.5 w-3.5" />
+              <span>Open Invoice Reminders Dashboard</span>
+              <ArrowRight className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

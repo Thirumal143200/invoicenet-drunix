@@ -378,10 +378,10 @@ The platform enforces a deterministic lifecycle state machine:
 * **Human-in-the-Loop Underwriting**: AI risk scores and fraud alerts are strictly advisory. Financiers must provide a written decision reason to approve or reject financing.
 * **Duplicate Prevention**: Re-financing or duplicate active bids on an existing invoice are strictly prevented at the database and ledger level.
 
-### 4. Automated Test Suite (180 Backend + 14 Frontend Tests, 0 Regressions)
+### 4. Automated Test Suite (231 Backend + 14 Frontend Tests, 0 Regressions)
 Run the full test suite with:
 ```bash
-# Backend Test Suite (180 tests)
+# Backend Test Suite (231 tests)
 cd backend
 npm test
 
@@ -395,8 +395,9 @@ npm test
 * **Multi-User Platform & Financing**: 9 tests (bcrypt password hashing, JWT generation, financing lifecycle, duplicate prevention, underwriting reasons, audit logging).
 * **Sequential Multi-User Auth & Tenant Isolation**: 12 tests (sequential logins, token isolation, profile verification, role routing).
 * **AI Payment Prediction & 30-Day Cash Flow Forecasting**: 39 tests (empirical lag attribution, sparse data rule-based fallback, late risk factors, 30-day timeline boundaries, directional flow, multi-tenant isolation).
+* **Automated Invoice Reminders & Notifications**: 51 tests (interval matching across 6 boundaries, PostgreSQL deduplication, settlement suppression, email adapter, transport failures, RBAC, tenant isolation, preferences, background scheduler telemetry).
 * **Frontend Forecast Component & Logic Suite**: 14 tests (direction filters, status filters, search filters, estimation badge indicators, timeline consistency).
-* **Total**: **194 Tests Passed, 0 Failed**.
+* **Total**: **245 Tests Passed, 0 Failed**.
 
 ---
 
@@ -420,5 +421,52 @@ InvoiceNet provides a dedicated **Payment Forecast & Cash Flow Intelligence** da
 | :--- | :--- | :--- | :--- |
 | `GET` | `/api/cashflow/payment-forecast` | Generates 30-day daily cash flow timeline, counterparty payment profiles, and predicted payment dates with explainability factors | `SUPPLIER`, `BUYER`, `FINANCIER`, `AUDITOR`, `EXPLORER`, `ADMIN` |
 | `GET` | `/api/cashflow/forecast` | Generates macro scenario modeling (Baseline, Early Payment, Delayed Payment, DRUNIX Factoring) | All authenticated roles |
+
+---
+
+## 🔔 Phase 4: Automated Invoice Reminder & Overdue Payment Notification System
+
+InvoiceNet provides an autonomous, reliable, and enterprise-grade **Invoice Reminder and Overdue Payment Notification System** designed to minimize Days Sales Outstanding (DSO) and prevent commercial payment defaults.
+
+### 1. Key Architectural Features
+* **Automated Due-Date Interval Tracking**:
+  * **7 Days Before Due Date (`BEFORE_7_DAYS`)**: Early maturity alert advising payment scheduling.
+  * **3 Days Before Due Date (`BEFORE_3_DAYS`)**: Urgent upcoming maturity reminder to allocate settlement funds.
+  * **On Due Date (`DUE_TODAY`)**: Action required notification prompting RTGS/NEFT execution.
+  * **1 Day Overdue (`OVERDUE_1_DAY`)**: First overdue payment notice.
+  * **3 Days Overdue (`OVERDUE_3_DAYS`)**: Escalated overdue alert highlighting consortium credit impact.
+  * **7 Days Overdue (`OVERDUE_7_DAYS`)**: Critical overdue warning with automatic escalation to consortium auditors.
+* **PostgreSQL-Backed Duplicate Prevention**:
+  * Enforces database-level unique constraints `uq_invoice_reminder_interval (invoice_id, reminder_type, recipient_role)` with `ON CONFLICT DO NOTHING`.
+  * Even across concurrent background threads or server restarts, no duplicate reminder is ever generated for the same invoice and interval.
+* **Settlement & Cancellation Guardrails**:
+  * Reminders are immediately suppressed when an invoice is marked `PAID`, `SETTLED`, `CANCELLED`, or `REJECTED`.
+* **Pluggable Multi-Channel Email Adapter**:
+  * Supports SMTP, Resend, SendGrid, and High-Performance Simulated adapters.
+  * Configurable via environment variables (`EMAIL_PROVIDER`, `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `EMAIL_FROM`).
+  * Graceful fallback: If email credentials are not supplied or downstream delivery fails, the error is safely caught and recorded without interrupting in-app notifications or core transaction processing.
+* **Resilient Background Scheduler**:
+  * Runs hourly recurring scans with immediate catch-up on server boot, ensuring zero lost notifications.
+  * Features real-time telemetry: total runs count, last run report, next scheduled run, and error logs.
+* **Dedicated Notification Center & Reminders Dashboard**:
+  * Polished React enterprise interface with real-time KPI metrics, multi-tab filtering (Upcoming, Due Today, Overdue, Unread), search, mark-all-as-read, and rule configuration modal.
+* **Strict Multi-Tenant Isolation & Role-Based Access Control**:
+  * **Suppliers**: Access receivables tracking notices for their invoices only.
+  * **Buyers**: Access payables obligations and overdue warnings for their invoices only.
+  * **Financiers**: Monitor financed receivables reaching maturity.
+  * **Auditors / Administrators**: Full consortium-wide visibility and audit trail.
+
+### 2. Reminder REST API Endpoints
+| Method | Endpoint | Description |
+| :--- | :--- | :--- |
+| `GET` | `/api/reminders` | Query reminders with RBAC, tenant isolation, and status/interval filters (`?filter=UPCOMING\|DUE_TODAY\|OVERDUE\|UNREAD`) |
+| `GET` | `/api/reminders/summary` | Retrieve summary KPI metrics (total reminders, upcoming, due today, overdue, unread, delivery statistics) |
+| `POST` | `/api/reminders/process` | Trigger immediate scan and generation of due reminders (supports optional `referenceDate` for testing) |
+| `GET` | `/api/reminders/scheduler` | Health and telemetry status of the background reminder scheduler |
+| `PUT` | `/api/reminders/:id/read` | Mark an individual reminder as read |
+| `PUT` | `/api/reminders/read-all` | Mark all unread reminders as read for the active user/organization |
+| `GET` | `/api/reminders/preferences` | Retrieve user and organization reminder intervals, channels, and threshold preferences |
+| `PUT` | `/api/reminders/preferences` | Update reminder intervals, toggle email/in-app channels, and adjust minimum amount threshold |
+
 
 

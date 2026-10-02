@@ -14,12 +14,14 @@ import authRoutes from './routes/authRoutes';
 import financingRoutes from './routes/financingRoutes';
 import paymentRoutes from './routes/paymentRoutes';
 import auditNotificationRoutes from './routes/auditNotificationRoutes';
+import reminderRoutes from './routes/reminderRoutes';
 import { initializeDatabase, isDatabasePostgres } from './db';
 import { DocumentIntelligenceService } from './services/documentIntelligenceService';
 import { CopilotService } from './services/copilotService';
 import { FraudDetectionService } from './services/fraudDetectionService';
 import { CashFlowForecastService } from './services/cashFlowForecastService';
 import { InvoiceRiskEngineService } from './services/invoiceRiskEngineService';
+import { ReminderSchedulerService } from './services/reminderSchedulerService';
 
 dotenv.config();
 dotenv.config({ path: path.resolve(__dirname, '../.env') });
@@ -33,6 +35,7 @@ CopilotService.initializeGemini();
 FraudDetectionService.initialize();
 CashFlowForecastService.initialize();
 InvoiceRiskEngineService.initialize();
+ReminderSchedulerService.start(60); // 1-hour recurring scan interval
 
 const app = express();
 const PORT = Number(process.env.PORT) || 5000;
@@ -77,6 +80,7 @@ const healthHandler = (req: express.Request, res: express.Response) => {
     database: isDatabasePostgres() ? 'POSTGRESQL' : 'IN_MEMORY_TRANSACTIONAL',
     geminiEnabled: !!process.env.GEMINI_API_KEY,
     drunixChannel: 'invoicenet-channel',
+    remindersScheduler: ReminderSchedulerService.getStatus().isRunning ? 'RUNNING' : 'STOPPED',
     timestamp: new Date().toISOString(),
   });
 };
@@ -88,6 +92,7 @@ app.get('/api/health', healthHandler);
 app.use('/api/auth', authRoutes);
 app.use('/api/financing', financingRoutes);
 app.use('/api/payments', paymentRoutes);
+app.use('/api/reminders', reminderRoutes);
 app.use('/api', auditNotificationRoutes);
 app.use('/api/invoices', invoiceRoutes);
 app.use('/api/blockchain', blockchainRoutes);

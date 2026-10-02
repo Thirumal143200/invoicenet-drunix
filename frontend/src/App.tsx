@@ -20,6 +20,7 @@ import { FinancingWorkflowView } from './components/FinancingWorkflowView';
 import { AuditTrailView } from './components/AuditTrailView';
 import { RecordPaymentModal } from './components/RecordPaymentModal';
 import { NotificationsDrawer } from './components/NotificationsDrawer';
+import { InvoiceRemindersView } from './components/InvoiceRemindersView';
 
 const PERSONAS: UserPersona[] = [
   {
@@ -54,7 +55,7 @@ const PERSONAS: UserPersona[] = [
 
 export const App: React.FC = () => {
   const [currentPersona, setCurrentPersona] = useState<UserPersona>(PERSONAS[0]);
-  const [activeTab, setActiveTab] = useState<'INVOICES' | 'NETWORK' | 'ANALYTICS' | 'FRAUD_CENTER' | 'CASH_FLOW' | 'RISK_ENGINE' | 'COPILOT' | 'FINANCING' | 'AUDIT_TRAIL'>('INVOICES');
+  const [activeTab, setActiveTab] = useState<'INVOICES' | 'NETWORK' | 'ANALYTICS' | 'FRAUD_CENTER' | 'CASH_FLOW' | 'RISK_ENGINE' | 'COPILOT' | 'FINANCING' | 'AUDIT_TRAIL' | 'REMINDERS'>('INVOICES');
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [metrics, setMetrics] = useState<AnalyticsMetrics | null>(null);
   const [blockHeight, setBlockHeight] = useState<number>(1045);
@@ -551,6 +552,20 @@ export const App: React.FC = () => {
           {activeTab === 'AUDIT_TRAIL' && (
             <AuditTrailView currentPersona={currentPersona} />
           )}
+
+          {/* TAB 10: AUTOMATED INVOICE REMINDERS & NOTIFICATION CENTER */}
+          {activeTab === 'REMINDERS' && (
+            <InvoiceRemindersView
+              currentPersona={currentPersona}
+              onInspectInvoiceProof={(invId) => {
+                const found = invoices.find(
+                  (i) => i.id.toLowerCase() === invId.toLowerCase() || i.invoiceNumber.toLowerCase() === invId.toLowerCase()
+                );
+                if (found) setSelectedProofInvoice(found);
+              }}
+              onRefreshLedger={fetchData}
+            />
+          )}
         </main>
       </div>
 
@@ -594,6 +609,7 @@ export const App: React.FC = () => {
           fetchUnreadCount();
         }}
         userId={authenticatedUser?.id}
+        onOpenRemindersDashboard={() => setActiveTab('REMINDERS')}
       />
 
       <RecordPaymentModal

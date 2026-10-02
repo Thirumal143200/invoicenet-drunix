@@ -131,6 +131,44 @@ export interface DbNotification {
   created_at: string;
 }
 
+export interface DbInvoiceReminder {
+  id: string;
+  invoice_id: string;
+  invoice_number: string;
+  recipient_user_id?: string;
+  recipient_organization_id: string;
+  recipient_email?: string;
+  recipient_role: 'BUYER' | 'SUPPLIER' | 'FINANCIER';
+  reminder_type: 'BEFORE_7_DAYS' | 'BEFORE_3_DAYS' | 'DUE_TODAY' | 'OVERDUE_1_DAY' | 'OVERDUE_3_DAYS' | 'OVERDUE_7_DAYS';
+  interval_days: number;
+  due_date: string;
+  amount: number;
+  currency: string;
+  status: 'PENDING' | 'SENT' | 'FAILED' | 'DISMISSED';
+  channel: 'IN_APP' | 'EMAIL' | 'BOTH';
+  email_delivery_status: 'DELIVERED' | 'FAILED' | 'SKIPPED' | 'MOCKED';
+  email_message_id?: string;
+  error_message?: string;
+  is_read: boolean;
+  read_at?: string;
+  metadata?: any;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface DbReminderPreference {
+  id: string;
+  user_id: string;
+  organization_id: string;
+  email_enabled: boolean;
+  in_app_enabled: boolean;
+  enabled_intervals: number[];
+  overdue_alerts_enabled: boolean;
+  minimum_amount: number;
+  created_at: string;
+  updated_at: string;
+}
+
 // In-Memory store fallback when PostgreSQL is not configured
 class InMemoryDatabase {
   public organizations: Map<string, DbOrganization> = new Map();
@@ -141,6 +179,8 @@ class InMemoryDatabase {
   public payments: Map<string, DbPayment> = new Map();
   public auditLogs: DbAuditLog[] = [];
   public notifications: DbNotification[] = [];
+  public invoiceReminders: Map<string, DbInvoiceReminder> = new Map();
+  public reminderPreferences: Map<string, DbReminderPreference> = new Map();
 
   constructor() {
     this.seedDefaultData();
@@ -292,6 +332,58 @@ class InMemoryDatabase {
     this.users.set(userAuditor.id, userAuditor);
     this.users.set(userAdmin.id, userAdmin);
 
+    // Default Reminder Preferences
+    this.reminderPreferences.set(userSupplier.id, {
+      id: 'PREF-SUPPLIER-01',
+      user_id: userSupplier.id,
+      organization_id: orgSupplier.id,
+      email_enabled: true,
+      in_app_enabled: true,
+      enabled_intervals: [-7, -3, 0, 1, 3, 7],
+      overdue_alerts_enabled: true,
+      minimum_amount: 0,
+      created_at: new Date('2026-09-01T00:00:00Z').toISOString(),
+      updated_at: new Date().toISOString(),
+    });
+
+    this.reminderPreferences.set(userBuyer.id, {
+      id: 'PREF-BUYER-01',
+      user_id: userBuyer.id,
+      organization_id: orgBuyer.id,
+      email_enabled: true,
+      in_app_enabled: true,
+      enabled_intervals: [-7, -3, 0, 1, 3, 7],
+      overdue_alerts_enabled: true,
+      minimum_amount: 0,
+      created_at: new Date('2026-09-01T00:00:00Z').toISOString(),
+      updated_at: new Date().toISOString(),
+    });
+
+    // Seed initial reminders for demo consistency
+    const initialReminder1: DbInvoiceReminder = {
+      id: 'REM-INIT-001',
+      invoice_id: 'INV-2026-003',
+      invoice_number: 'TP-2026-8799',
+      recipient_user_id: userBuyer.id,
+      recipient_organization_id: orgBuyer.id,
+      recipient_email: orgBuyer.contact_email || 'payables@autoworks.com',
+      recipient_role: 'BUYER',
+      reminder_type: 'OVERDUE_1_DAY',
+      interval_days: 1,
+      due_date: '2026-10-01T09:00:00Z',
+      amount: 780000.0,
+      currency: 'INR',
+      status: 'SENT',
+      channel: 'BOTH',
+      email_delivery_status: 'MOCKED',
+      email_message_id: 'mock-msg-init-001',
+      is_read: false,
+      metadata: { buyerOrg: 'AutoWorks Industries Ltd.', supplierOrg: 'TechParts Manufacturing Pvt. Ltd.' },
+      created_at: new Date('2026-10-02T09:00:00Z').toISOString(),
+      updated_at: new Date('2026-10-02T09:00:00Z').toISOString(),
+    };
+    this.invoiceReminders.set(initialReminder1.id, initialReminder1);
+
     // Initial audit log
     this.auditLogs.push({
       id: 'AUDIT-GENESIS-01',
@@ -349,16 +441,24 @@ export async function initializeDatabase(): Promise<boolean> {
 }
 
 /**
- * Run Initial Schema Migrations on PostgreSQL
+ * Run Schema Migrations on PostgreSQL
  */
 async function runMigrations() {
   if (!pool) return;
   try {
-    const migrationFile = path.join(__dirname, 'migrations/001_initial_schema.sql');
-    if (fs.existsSync(migrationFile)) {
-      const sql = fs.readFileSync(migrationFile, 'utf-8');
-      await pool.query(sql);
-      console.log('✅ PostgreSQL Schema migrations applied successfully.');
+    const migrationsDir = path.join(__dirname, 'migrations');
+    if (fs.existsSync(migrationsDir)) {
+      const files = fs
+        .readdirSync(migrationsDir)
+        .filter((f) => f.endsWith('.sql'))
+        .sort();
+
+      for (const file of files) {
+        const filePath = path.join(migrationsDir, file);
+        const sql = fs.readFileSync(filePath, 'utf-8');
+        await pool.query(sql);
+        console.log(`✅ Applied migration: ${file}`);
+      }
 
       // Check if organizations need seeding
       const checkOrgs = await pool.query('SELECT COUNT(*) FROM organizations');

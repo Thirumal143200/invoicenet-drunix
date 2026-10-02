@@ -4,7 +4,7 @@ import { Plus, RefreshCw, ShieldAlert, Cpu, Sparkles, Bot, Bell, LogIn, LogOut, 
 
 interface HeaderProps {
   currentPersona: UserPersona;
-  activeTab: 'INVOICES' | 'NETWORK' | 'ANALYTICS' | 'FRAUD_CENTER' | 'CASH_FLOW' | 'RISK_ENGINE' | 'COPILOT' | 'FINANCING' | 'AUDIT_TRAIL';
+  activeTab: 'INVOICES' | 'NETWORK' | 'ANALYTICS' | 'FRAUD_CENTER' | 'CASH_FLOW' | 'RISK_ENGINE' | 'COPILOT' | 'FINANCING' | 'AUDIT_TRAIL' | 'REMINDERS';
   blockHeight: number;
   unreadCount?: number;
   authenticatedUser?: any | null;
@@ -53,6 +53,8 @@ export const Header: React.FC<HeaderProps> = ({
         return 'DRUNIX Invoice Financing Exchange';
       case 'AUDIT_TRAIL':
         return 'Consortium Operations & Audit Trail';
+      case 'REMINDERS':
+        return 'Automated Invoice Reminders & Overdue Alerts';
     }
   };
 
@@ -76,6 +78,8 @@ export const Header: React.FC<HeaderProps> = ({
         return 'Submit receivables for competitive financier bids, review discount APRs, and track disbursements';
       case 'AUDIT_TRAIL':
         return 'Immutable event log of user logins, invoice submissions, multi-party endorsements, and payments';
+      case 'REMINDERS':
+        return 'Automated -7d/-3d/due/+1d/+3d/+7d notification dispatch, email delivery adapter & deduplication engine';
     }
   };
 

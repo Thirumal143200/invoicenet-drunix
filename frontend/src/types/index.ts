@@ -524,3 +524,56 @@ export interface PaymentForecastResult {
   };
 }
 
+export interface InvoiceReminder {
+  id: string;
+  invoice_id: string;
+  invoice_number: string;
+  recipient_user_id?: string;
+  recipient_organization_id: string;
+  recipient_email?: string;
+  recipient_role: 'BUYER' | 'SUPPLIER' | 'FINANCIER';
+  reminder_type: 'BEFORE_7_DAYS' | 'BEFORE_3_DAYS' | 'DUE_TODAY' | 'OVERDUE_1_DAY' | 'OVERDUE_3_DAYS' | 'OVERDUE_7_DAYS';
+  interval_days: number;
+  due_date: string;
+  amount: number;
+  currency: string;
+  status: 'PENDING' | 'SENT' | 'FAILED' | 'DISMISSED';
+  channel: 'IN_APP' | 'EMAIL' | 'BOTH';
+  email_delivery_status: 'DELIVERED' | 'FAILED' | 'SKIPPED' | 'MOCKED';
+  email_message_id?: string;
+  error_message?: string;
+  is_read: boolean;
+  read_at?: string;
+  metadata?: {
+    buyerOrg?: string;
+    supplierOrg?: string;
+    daysDifference?: number;
+  };
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ReminderSummary {
+  totalReminders: number;
+  upcomingCount: number;
+  dueTodayCount: number;
+  overdueCount: number;
+  unreadCount: number;
+  deliveredEmailsCount: number;
+  failedEmailsCount: number;
+  emailConfigured: boolean;
+}
+
+export interface ReminderPreference {
+  id: string;
+  user_id: string;
+  organization_id: string;
+  email_enabled: boolean;
+  in_app_enabled: boolean;
+  enabled_intervals: number[];
+  overdue_alerts_enabled: boolean;
+  minimum_amount: number;
+  created_at: string;
+  updated_at: string;
+}
+

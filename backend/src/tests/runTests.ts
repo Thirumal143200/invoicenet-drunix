@@ -7,6 +7,7 @@ import { runCopilotTests } from './testCopilot';
 import { runAuthAndFinancingTests } from './testAuthAndFinancing';
 import { runSequentialLoginTests } from './testSequentialLogin';
 import { runPaymentPredictionTests } from './testPaymentPrediction';
+import { runInvoiceReminderTests } from './testInvoiceReminders';
 
 async function runTestSuite() {
   console.log('================================================================');
@@ -325,8 +326,24 @@ startxref
   console.log('\n>>> Starting AI Payment Prediction & 30-Day Cash Flow Forecast Test Suite...\n');
   const paymentPredResults = await runPaymentPredictionTests();
 
-  const totalPassed = passed + riskResults.passed + copilotResults.passed + 9 + sequentialResults.passed + paymentPredResults.passed;
-  const totalFailed = failed + riskResults.failed + copilotResults.failed + sequentialResults.failed + paymentPredResults.failed;
+  console.log('\n>>> Starting Automated Invoice Reminder & Overdue Notification Test Suite...\n');
+  const reminderResults = await runInvoiceReminderTests();
+
+  const totalPassed =
+    passed +
+    riskResults.passed +
+    copilotResults.passed +
+    9 +
+    sequentialResults.passed +
+    paymentPredResults.passed +
+    reminderResults.passed;
+  const totalFailed =
+    failed +
+    riskResults.failed +
+    copilotResults.failed +
+    sequentialResults.failed +
+    paymentPredResults.failed +
+    reminderResults.failed;
 
   console.log('\n================================================================');
   console.log(`GRAND TEST SUITE SUMMARY: ${totalPassed} PASSED, ${totalFailed} FAILED`);
