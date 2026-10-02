@@ -755,6 +755,10 @@ class DrunixGatewayService {
       traditionalTurnaroundDays: 21,
     };
   }
+
+  public setInvoiceForTesting(invoice: Invoice): void {
+    this.invoices.set(invoice.id, invoice);
+  }
 }
 
 export const drunixGateway = new DrunixGatewayService();

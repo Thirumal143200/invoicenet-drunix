@@ -378,16 +378,47 @@ The platform enforces a deterministic lifecycle state machine:
 * **Human-in-the-Loop Underwriting**: AI risk scores and fraud alerts are strictly advisory. Financiers must provide a written decision reason to approve or reject financing.
 * **Duplicate Prevention**: Re-financing or duplicate active bids on an existing invoice are strictly prevented at the database and ledger level.
 
-### 4. Automated Test Suite (129 Tests, 0 Regressions)
+### 4. Automated Test Suite (180 Backend + 14 Frontend Tests, 0 Regressions)
 Run the full test suite with:
 ```bash
+# Backend Test Suite (180 tests)
 cd backend
+npm test
+
+# Frontend Test Suite (14 tests)
+cd frontend
 npm test
 ```
 * **AI Document Intelligence**: 21 tests (extraction, validation, JSON schemas).
 * **AI Invoice Risk Engine**: 52 tests (0–100 deterministic scoring, weights, Gemini fallback).
 * **AI Financial Copilot**: 47 tests (role permissions, prompt injection defense, grounding).
 * **Multi-User Platform & Financing**: 9 tests (bcrypt password hashing, JWT generation, financing lifecycle, duplicate prevention, underwriting reasons, audit logging).
-* **Total**: **129 Tests Passed, 0 Failed**.
+* **Sequential Multi-User Auth & Tenant Isolation**: 12 tests (sequential logins, token isolation, profile verification, role routing).
+* **AI Payment Prediction & 30-Day Cash Flow Forecasting**: 39 tests (empirical lag attribution, sparse data rule-based fallback, late risk factors, 30-day timeline boundaries, directional flow, multi-tenant isolation).
+* **Frontend Forecast Component & Logic Suite**: 14 tests (direction filters, status filters, search filters, estimation badge indicators, timeline consistency).
+* **Total**: **194 Tests Passed, 0 Failed**.
+
+---
+
+## 📈 Phase 3: AI Payment Prediction & 30-Day Cash Flow Forecasting
+
+InvoiceNet provides a dedicated **Payment Forecast & Cash Flow Intelligence** dashboard designed to eliminate working capital uncertainty for MSMEs, corporate procurement teams, and institutional financiers.
+
+### 1. Key Capabilities
+* **Interactive 30-Day Cash Flow Timeline**: Real-time daily projection of incoming receivables, outgoing payables, net liquidity, and cumulative cash trajectory.
+* **Empirical Counterparty Payment Velocity**: Analyzes verified historical settlement records on DRUNIX and PostgreSQL to estimate actual settlement dates instead of relying on nominal invoice due dates.
+* **Multidimensional Risk Explainability**: Every predicted payment item includes clear attribution factors explaining expected delays (e.g. historical payment velocity, BuyerMSP on-chain endorsement status, invoice amount tiers, days past maturity).
+* **Transparent Rule-Based Fallback ($N < 2$)**: When historical data for a counterparty is sparse ($N < 2$), the engine strictly applies a contractual baseline rule, labels the prediction with `isEstimated: true`, and applies a lower confidence score. It **never fabricates transaction history** or claims a machine learning model was trained when it was not.
+* **Role-Based Directional Flow & Tenant Isolation**:
+  * **Suppliers**: Projects incoming receivables, accelerates cash flow recommendations via instant DRUNIX factoring.
+  * **Buyers**: Projects scheduled payables, flags overdue payment penalties to safeguard corporate credit ratings.
+  * **Financiers**: Monitors ecosystem repayment timelines and liquidity velocity across financed portfolios.
+  * **Auditors / Administrators**: Consortium-wide oversight across all participating entities.
+
+### 2. REST API Endpoints
+| Method | Endpoint | Description | Permitted Roles |
+| :--- | :--- | :--- | :--- |
+| `GET` | `/api/cashflow/payment-forecast` | Generates 30-day daily cash flow timeline, counterparty payment profiles, and predicted payment dates with explainability factors | `SUPPLIER`, `BUYER`, `FINANCIER`, `AUDITOR`, `EXPLORER`, `ADMIN` |
+| `GET` | `/api/cashflow/forecast` | Generates macro scenario modeling (Baseline, Early Payment, Delayed Payment, DRUNIX Factoring) | All authenticated roles |
 
 

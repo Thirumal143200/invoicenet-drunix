@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
+    "test": "tsc --noEmit && npm --prefix ../backend exec ts-node ../frontend/src/tests/paymentForecast.test.ts",
     "preview": "vite preview"
   },
   "dependencies": {

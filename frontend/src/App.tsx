@@ -61,7 +61,14 @@ export const App: React.FC = () => {
   const [loading, setLoading] = useState(true);
 
   // Authentication & Notifications State
-  const [authenticatedUser, setAuthenticatedUser] = useState<any | null>(null);
+  const [authenticatedUser, setAuthenticatedUser] = useState<any | null>(() => {
+    try {
+      const stored = localStorage.getItem('invoicenet_auth_user');
+      return stored ? JSON.parse(stored) : null;
+    } catch {
+      return null;
+    }
+  });
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [paymentModalInvoice, setPaymentModalInvoice] = useState<Invoice | null>(null);
@@ -86,18 +93,21 @@ export const App: React.FC = () => {
           headers: { Authorization: `Bearer ${token}` },
         });
         const data = await res.json();
-        if (data.success && data.data?.user) {
-          setAuthenticatedUser(data.data.user);
-          const match = PERSONAS.find((p) => p.role === data.data.user.role);
+        const user = data.data?.user || (data.data?.id ? data.data : null);
+        if (data.success && user) {
+          setAuthenticatedUser(user);
+          localStorage.setItem('invoicenet_auth_user', JSON.stringify(user));
+          const match = PERSONAS.find((p) => p.role === user.role);
           if (match) {
             setCurrentPersona({
               ...match,
-              name: data.data.user.fullName || match.name,
-              org: data.data.user.organization?.name || match.org,
+              name: user.fullName || match.name,
+              org: user.organizationName || user.organization?.name || match.org,
             });
           }
         } else {
           localStorage.removeItem('invoicenet_auth_token');
+          localStorage.removeItem('invoicenet_auth_user');
           setAuthenticatedUser(null);
         }
       } catch (err) {
@@ -126,9 +136,17 @@ export const App: React.FC = () => {
 
   const fetchData = async () => {
     try {
+      const token = localStorage.getItem('invoicenet_auth_token');
+      const headers: Record<string, string> = {
+        'x-user-role': currentPersona.role,
+        'x-user-id': currentPersona.name,
+        'x-user-org': currentPersona.org,
+      };
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+
       const [invRes, metricRes, statusRes] = await Promise.all([
-        fetch('/api/invoices'),
-        fetch('/api/analytics/metrics'),
+        fetch('/api/invoices', { headers }),
+        fetch('/api/analytics/metrics', { headers }),
         fetch('/api/blockchain/status'),
       ]);
 
@@ -156,6 +174,9 @@ export const App: React.FC = () => {
 
   useEffect(() => {
     checkAuth();
+  }, []);
+
+  useEffect(() => {
     fetchData();
     fetchUnreadCount();
     const interval = setInterval(() => {
@@ -163,28 +184,87 @@ export const App: React.FC = () => {
       fetchUnreadCount();
     }, 4000);
     return () => clearInterval(interval);
-  }, [currentPersona.role]);
+  }, [currentPersona.role, currentPersona.name, authenticatedUser?.id]);
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    const token = localStorage.getItem('invoicenet_auth_token');
+    if (token) {
+      try {
+        await fetch('/api/auth/logout', {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}` },
+        });
+      } catch {
+        // ignore
+      }
+    }
     localStorage.removeItem('invoicenet_auth_token');
+    localStorage.removeItem('invoicenet_auth_user');
     setAuthenticatedUser(null);
-    fetchUnreadCount();
+
+    // Completely clear previous user's data & filters
+    setInvoices([]);
+    setMetrics(null);
+    setUnreadCount(0);
+    setSelectedProofInvoice(null);
+    setFilterStatus('ALL');
+
+    // Reset persona and dashboard to neutral default
+    setCurrentPersona(PERSONAS[0]);
+    setActiveTab('INVOICES');
   };
 
   const handleAuthSuccess = (user: any, token: string) => {
     localStorage.setItem('invoicenet_auth_token', token);
+    localStorage.setItem('invoicenet_auth_user', JSON.stringify(user));
     setAuthenticatedUser(user);
+
+    // Clear previous user's state completely
+    setInvoices([]);
+    setMetrics(null);
+    setUnreadCount(0);
+    setSelectedProofInvoice(null);
+    setFilterStatus('ALL');
+
+    // Update current persona to match authenticated user
     const match = PERSONAS.find((p) => p.role === user.role);
-    if (match) {
-      setCurrentPersona({
-        ...match,
-        name: user.fullName || match.name,
-        org: user.organization?.name || match.org,
-      });
+    const updatedPersona: UserPersona = match
+      ? {
+          ...match,
+          name: user.fullName || match.name,
+          org: user.organizationName || user.organization?.name || match.org,
+          orgMsp: user.mspId || match.orgMsp,
+        }
+      : {
+          role: user.role,
+          name: user.fullName,
+          org: user.organizationName || user.organization?.name || 'Consortium Member',
+          orgMsp: user.mspId || `${user.role}MSP`,
+          badgeColor: user.role === 'BUYER' ? 'emerald' : user.role === 'FINANCIER' ? 'indigo' : 'royal',
+        };
+
+    setCurrentPersona(updatedPersona);
+
+    // Route immediately to the correct role-specific dashboard
+    switch (user.role) {
+      case 'SUPPLIER':
+        setActiveTab('INVOICES');
+        break;
+      case 'BUYER':
+        setActiveTab('INVOICES');
+        break;
+      case 'FINANCIER':
+        setActiveTab('FINANCING');
+        break;
+      case 'AUDITOR':
+      case 'EXPLORER':
+        setActiveTab('NETWORK');
+        break;
+      default:
+        setActiveTab('INVOICES');
     }
+
     setIsAuthModalOpen(false);
-    fetchData();
-    fetchUnreadCount();
   };
 
   const filteredInvoices = invoices.filter((inv) => {
@@ -209,6 +289,7 @@ export const App: React.FC = () => {
         blockHeight={blockHeight}
         invoiceCount={invoices.length}
         onOpenDoubleFinancingModal={() => setIsDoubleFinancingModalOpen(true)}
+        authenticatedUser={authenticatedUser}
       />
 
       {/* Main Content Area */}

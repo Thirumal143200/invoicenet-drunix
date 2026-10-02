@@ -5,6 +5,8 @@ import { drunixGateway } from '../services/drunixGateway';
 import { runComprehensiveRiskEngineTests } from './testRiskEngine';
 import { runCopilotTests } from './testCopilot';
 import { runAuthAndFinancingTests } from './testAuthAndFinancing';
+import { runSequentialLoginTests } from './testSequentialLogin';
+import { runPaymentPredictionTests } from './testPaymentPrediction';
 
 async function runTestSuite() {
   console.log('================================================================');
@@ -317,8 +319,14 @@ startxref
   console.log('\n>>> Starting Multi-User & Financing Platform Test Suite...\n');
   await runAuthAndFinancingTests();
 
-  const totalPassed = passed + riskResults.passed + copilotResults.passed + 9;
-  const totalFailed = failed + riskResults.failed + copilotResults.failed;
+  console.log('\n>>> Starting Sequential Multi-User Auth & Tenant Isolation Test Suite...\n');
+  const sequentialResults = await runSequentialLoginTests();
+
+  console.log('\n>>> Starting AI Payment Prediction & 30-Day Cash Flow Forecast Test Suite...\n');
+  const paymentPredResults = await runPaymentPredictionTests();
+
+  const totalPassed = passed + riskResults.passed + copilotResults.passed + 9 + sequentialResults.passed + paymentPredResults.passed;
+  const totalFailed = failed + riskResults.failed + copilotResults.failed + sequentialResults.failed + paymentPredResults.failed;
 
   console.log('\n================================================================');
   console.log(`GRAND TEST SUITE SUMMARY: ${totalPassed} PASSED, ${totalFailed} FAILED`);

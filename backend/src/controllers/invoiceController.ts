@@ -1,11 +1,63 @@
 import { Request, Response } from 'express';
-import { drunixGateway } from '../services/drunixGateway';
+import { drunixGateway, Invoice } from '../services/drunixGateway';
+
+/**
+ * Helper to check tenant authorization for an invoice
+ */
+export function isAuthorizedForInvoice(
+  invoice: Invoice,
+  user: { role: string; organizationName?: string; id?: string; mspId?: string }
+): boolean {
+  const role = (user.role || '').toUpperCase();
+  if (role === 'EXPLORER' || role === 'AUDITOR' || role === 'ADMIN') {
+    return true; // Consortium auditor/explorer/admin has full ledger visibility
+  }
+
+  const userOrg = (user.organizationName || '').toLowerCase().trim();
+  const userId = (user.id || '').toLowerCase().trim();
+
+  if (role === 'SUPPLIER') {
+    const invSupplierOrg = (invoice.supplierOrg || '').toLowerCase().trim();
+    const invSupplierId = (invoice.supplierId || '').toLowerCase().trim();
+    return (
+      (Boolean(userId) && (invSupplierId === userId || invSupplierId.includes(userId))) ||
+      (Boolean(userOrg) && (invSupplierOrg.includes(userOrg) || userOrg.includes(invSupplierOrg)))
+    );
+  }
+
+  if (role === 'BUYER') {
+    const invBuyerOrg = (invoice.buyerOrg || '').toLowerCase().trim();
+    const invBuyerId = (invoice.buyerId || '').toLowerCase().trim();
+    return (
+      (Boolean(userId) && (invBuyerId === userId || invBuyerId.includes(userId))) ||
+      (Boolean(userOrg) && (invBuyerOrg.includes(userOrg) || userOrg.includes(invBuyerOrg)))
+    );
+  }
+
+  if (role === 'FINANCIER') {
+    // Invoices open for financing, actively financed, or settled
+    if (invoice.status === 'CREATED' || invoice.status === 'REJECTED') {
+      return Boolean(
+        invoice.financierId &&
+          (invoice.financierId.toLowerCase() === userId ||
+            (Boolean(userOrg) && invoice.financierOrg?.toLowerCase().includes(userOrg)))
+      );
+    }
+    return true;
+  }
+
+  return false;
+}
 
 export class InvoiceController {
   public static async getAll(req: Request, res: Response) {
     try {
-      const invoices = await drunixGateway.getAllInvoices();
-      res.json({ success: true, data: invoices });
+      const allInvoices = await drunixGateway.getAllInvoices();
+      let data = allInvoices;
+      if (req.user) {
+        data = allInvoices.filter((inv) => isAuthorizedForInvoice(inv, req.user!));
+      }
+      res.json({ success: true, data });
     } catch (err: any) {
       res.status(500).json({ success: false, error: err.message });
     }
@@ -17,6 +69,14 @@ export class InvoiceController {
       if (!invoice) {
         return res.status(404).json({ success: false, error: 'Invoice not found on DRUNIX ledger' });
       }
+
+      if (req.user && !isAuthorizedForInvoice(invoice, req.user)) {
+        return res.status(403).json({
+          success: false,
+          error: `ACCESS DENIED: Tenant isolation policy prevents ${req.user.role} (${req.user.organizationName}) from accessing foreign invoice ${invoice.id}`,
+        });
+      }
+
       res.json({ success: true, data: invoice });
     } catch (err: any) {
       res.status(500).json({ success: false, error: err.message });
@@ -27,8 +87,6 @@ export class InvoiceController {
     try {
       const {
         invoiceNumber,
-        supplierId = 'SP-101',
-        supplierOrg = 'TechParts Manufacturing Pvt. Ltd.',
         buyerId = 'BY-201',
         buyerOrg = 'AutoWorks Industries Ltd.',
         amount,
@@ -44,6 +102,23 @@ export class InvoiceController {
         lineItems,
         aiVerification,
       } = req.body;
+
+      let { supplierId, supplierOrg } = req.body;
+
+      if (req.user) {
+        if (req.user.role === 'BUYER') {
+          return res.status(403).json({
+            success: false,
+            error: 'Access denied: Buyers cannot create supplier invoices.',
+          });
+        }
+        // Bind supplier to authenticated tenant
+        supplierOrg = req.user.organizationName || supplierOrg;
+        supplierId = req.user.id || supplierId;
+      }
+
+      supplierId = supplierId || 'SP-101';
+      supplierOrg = supplierOrg || 'TechParts Manufacturing Pvt. Ltd.';
 
       if (!amount || amount <= 0) {
         return res.status(400).json({ success: false, error: 'Amount must be greater than zero' });

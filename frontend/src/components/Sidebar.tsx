@@ -27,6 +27,7 @@ interface SidebarProps {
   blockHeight: number;
   invoiceCount: number;
   onOpenDoubleFinancingModal: () => void;
+  authenticatedUser?: any | null;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -38,6 +39,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   blockHeight,
   invoiceCount,
   onOpenDoubleFinancingModal,
+  authenticatedUser,
 }) => {
   const getPersonaIcon = (role: PersonaRole) => {
     switch (role) {
@@ -70,6 +72,37 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </div>
         </div>
       </div>
+
+      {/* Authenticated User Status Card */}
+      {authenticatedUser && (
+        <div className="mx-4 mt-3 p-3 rounded-lg bg-navy-surface border border-royal/30 text-xs">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-mono uppercase tracking-wider text-royal-light font-bold flex items-center space-x-1.5">
+              <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse"></span>
+              <span>Authenticated</span>
+            </span>
+            <span
+              className={`text-[9px] px-1.5 py-0.5 rounded font-mono font-bold uppercase ${
+                authenticatedUser.role === 'SUPPLIER'
+                  ? 'bg-blue-500/20 text-blue-300 border border-blue-400/30'
+                  : authenticatedUser.role === 'BUYER'
+                  ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-400/30'
+                  : authenticatedUser.role === 'FINANCIER'
+                  ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-400/30'
+                  : 'bg-slate-700 text-slate-300'
+              }`}
+            >
+              {authenticatedUser.role}
+            </span>
+          </div>
+          <div className="font-bold text-white mt-1 text-xs truncate">
+            {authenticatedUser.fullName}
+          </div>
+          <div className="text-[10px] text-slate-400 truncate mt-0.5">
+            {authenticatedUser.organizationName || currentPersona.org}
+          </div>
+        </div>
+      )}
 
       {/* Navigation Links */}
       <div className="px-4 py-5 space-y-1">

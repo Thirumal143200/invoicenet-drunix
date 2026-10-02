@@ -90,12 +90,40 @@ export const Header: React.FC<HeaderProps> = ({
 
         {/* Right Action Bar */}
         <div className="flex items-center space-x-2.5">
-          {/* Active Persona Badge */}
-          <div className="hidden md:flex items-center space-x-2 px-3 py-1.5 rounded-lg bg-softGray border border-softGray-border text-xs">
-            <span className="font-semibold text-navy">{currentPersona.name}</span>
-            <span className="text-slate-400">•</span>
-            <span className="text-slate-600 font-mono text-[11px] font-semibold">{currentPersona.orgMsp}</span>
-          </div>
+          {/* Authenticated User Status or Demo Persona Badge */}
+          {authenticatedUser ? (
+            <div className="flex items-center space-x-2 px-3 py-1.5 rounded-lg bg-slate-50 border border-slate-200 text-xs shadow-xs">
+              <div className="flex items-center space-x-1.5">
+                <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                <span className="font-bold text-navy" data-testid="auth-user-name">
+                  {authenticatedUser.fullName}
+                </span>
+              </div>
+              <span
+                data-testid="auth-user-role"
+                className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase border ${
+                  authenticatedUser.role === 'SUPPLIER'
+                    ? 'bg-blue-50 text-royal border-blue-200'
+                    : authenticatedUser.role === 'BUYER'
+                    ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                    : authenticatedUser.role === 'FINANCIER'
+                    ? 'bg-indigo-50 text-indigo-800 border-indigo-200'
+                    : 'bg-slate-100 text-slate-800 border-slate-300'
+                }`}
+              >
+                {authenticatedUser.role}
+              </span>
+              <span className="hidden xl:inline text-slate-500 text-[11px] truncate max-w-[150px]">
+                {authenticatedUser.organizationName || currentPersona.org}
+              </span>
+            </div>
+          ) : (
+            <div className="hidden md:flex items-center space-x-2 px-3 py-1.5 rounded-lg bg-softGray border border-softGray-border text-xs">
+              <span className="font-semibold text-navy">{currentPersona.name}</span>
+              <span className="text-slate-400">•</span>
+              <span className="text-slate-600 font-mono text-[11px] font-semibold">{currentPersona.orgMsp}</span>
+            </div>
+          )}
 
           {/* AI Smart Upload & Create Invoice Actions */}
           {currentPersona.role === 'SUPPLIER' && (
@@ -143,25 +171,26 @@ export const Header: React.FC<HeaderProps> = ({
             )}
           </button>
 
-          {/* User Sign In / Profile Button */}
+          {/* User Sign In / Logout Button */}
           {authenticatedUser ? (
-            <div className="flex items-center space-x-1">
-              <button
-                onClick={onLogout}
-                className="p-2 rounded-lg bg-white border border-softGray-border hover:bg-rose-50 text-slate-600 hover:text-rose-600 transition-colors shadow-sm"
-                title={`Signed in as ${authenticatedUser.fullName} (${authenticatedUser.role}) - Click to sign out`}
-              >
-                <LogOut className="h-4 w-4" />
-              </button>
-            </div>
+            <button
+              onClick={onLogout}
+              data-testid="logout-button"
+              className="px-3 py-2 rounded-lg bg-white border border-rose-200 hover:bg-rose-50 text-rose-700 font-semibold text-xs flex items-center space-x-1.5 transition-colors shadow-xs"
+              title={`Signed in as ${authenticatedUser.fullName} (${authenticatedUser.role}) - Click to sign out`}
+            >
+              <LogOut className="h-3.5 w-3.5 text-rose-600" />
+              <span>Logout</span>
+            </button>
           ) : (
             <button
               onClick={onOpenAuthModal}
+              data-testid="signin-button"
               className="px-3 py-2 rounded-lg bg-royal hover:bg-royal-hover text-white font-semibold text-xs flex items-center space-x-1.5 transition-colors shadow-sm"
               title="Sign In or Register Account"
             >
               <LogIn className="h-4 w-4" />
-              <span className="hidden sm:inline">Sign In</span>
+              <span>Sign In</span>
             </button>
           )}
 

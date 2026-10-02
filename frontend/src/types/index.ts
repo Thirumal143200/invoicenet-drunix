@@ -428,3 +428,99 @@ export interface InvoiceRiskAssessment {
   analyzedBy: string;
 }
 
+export interface PredictionFactor {
+  factor: string;
+  impact: string;
+  description: string;
+  category: 'HISTORICAL_BEHAVIOR' | 'ENDORSEMENT_STATE' | 'AMOUNT_TIER' | 'DATE_PROXIMITY';
+}
+
+export interface PredictedPaymentItem {
+  id: string;
+  invoiceNumber: string;
+  direction: 'INCOMING' | 'OUTGOING';
+  counterParty: string;
+  counterPartyOrg: string;
+  supplierOrg: string;
+  buyerOrg: string;
+  amount: number;
+  currency: string;
+  originalDueDate: string;
+  expectedPaymentDate: string;
+  predictedDelayDays: number;
+  isPotentialLate: boolean;
+  isOverdue: boolean;
+  riskLevel: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+  confidenceScore: number;
+  isEstimated: boolean;
+  modelType: 'EMPIRICAL_COUNTERPARTY_LAG_MODEL' | 'RULE_BASED_CONTRACTUAL_ESTIMATE';
+  status: string;
+  predictionFactors: PredictionFactor[];
+  recommendedAction: string;
+  drunixTxId?: string;
+  blockNumber?: number;
+}
+
+export interface DailyCashFlowPoint {
+  date: string;
+  dayLabel: string;
+  dayOfWeek: string;
+  dayIndex: number;
+  incomingAmount: number;
+  outgoingAmount: number;
+  netAmount: number;
+  cumulativeCashFlow: number;
+  transactionsCount: number;
+  transactions: Array<{
+    invoiceId: string;
+    invoiceNumber: string;
+    direction: 'INCOMING' | 'OUTGOING';
+    counterParty: string;
+    amount: number;
+    expectedDate: string;
+    isPotentialLate: boolean;
+    riskLevel: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+  }>;
+}
+
+export interface CounterpartyPaymentProfile {
+  counterPartyOrg: string;
+  settledInvoicesCount: number;
+  averageLagDays: number;
+  stdDevLagDays: number;
+  onTimePaymentRate: number;
+  hasSufficientHistory: boolean;
+  dataSource: 'POSTGRESQL' | 'DRUNIX_LEDGER_IN_MEMORY';
+}
+
+export interface PaymentForecastSummary {
+  totalForecastedIncoming30d: number;
+  totalForecastedOutgoing30d: number;
+  netCashFlow30d: number;
+  totalOverdueAmount: number;
+  totalAtRiskAmount: number;
+  potentialLateInvoicesCount: number;
+  onTimeInvoicesCount: number;
+  totalActiveInvoicesCount: number;
+  averageCounterpartyLagDays: number;
+  overallOnTimeRate: number;
+}
+
+export interface PaymentForecastResult {
+  role: 'SUPPLIER' | 'BUYER' | 'FINANCIER' | 'AUDITOR' | 'EXPLORER' | 'ADMIN';
+  userOrg: string;
+  currency: string;
+  generatedAt: string;
+  asOfDate: string;
+  summary: PaymentForecastSummary;
+  dailyTimeline30Days: DailyCashFlowPoint[];
+  predictedPayments: PredictedPaymentItem[];
+  counterpartyProfiles: Record<string, CounterpartyPaymentProfile>;
+  methodology: {
+    approach: string;
+    historicalSettlementsAnalyzed: number;
+    hasSufficientHistory: boolean;
+    disclaimer: string;
+  };
+}
+

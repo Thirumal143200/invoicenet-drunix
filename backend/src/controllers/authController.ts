@@ -267,7 +267,10 @@ export class AuthController {
 
     return res.json({
       success: true,
-      data: req.user,
+      data: {
+        user: req.user,
+        ...req.user,
+      },
     });
   }
 
