@@ -26,3 +26,8 @@ Thumbs.db
 # Uploaded documents
 backend/uploads/*
 !backend/uploads/.gitkeep
+
+# Presentation / Pitch Deck (Local Only - Not pushed to GitHub)
+pitch-deck/
+*.pptx
+*.pdf
